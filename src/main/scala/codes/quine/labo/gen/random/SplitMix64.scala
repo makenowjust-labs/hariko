@@ -25,8 +25,6 @@ final case class SplitMix64 private (x: Long, gamma: Long) {
 
   /** Returns right variant. It is the same as `split._2`. */
   def right: SplitMix64 = new SplitMix64(mix64(x + gamma), mixGamma(x + gamma * 2))
-
-  override def toString: String = s"SplitMix64($x, $gamma)"
 }
 
 object SplitMix64 {

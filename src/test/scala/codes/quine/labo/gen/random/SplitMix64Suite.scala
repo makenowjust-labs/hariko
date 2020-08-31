@@ -4,8 +4,8 @@ import minitest.SimpleTestSuite
 
 object SplitMix64Suite extends SimpleTestSuite {
   test("SplitMix64.apply") {
-    val splitmix = SplitMix64(42)
-    assertEquals(splitmix, SplitMix64(-9148929187392628276L, -4767286540954276203L))
+    assertEquals(SplitMix64(42), SplitMix64(-9148929187392628276L, -4767286540954276203L))
+    assertEquals(SplitMix64(0, 0), SplitMix64(0, 1))
   }
 
   test("SplitMix64#value") {
@@ -34,5 +34,9 @@ object SplitMix64Suite extends SimpleTestSuite {
   test("SplitMix64#right") {
     val splitmix0 = SplitMix64(42)
     assertEquals(splitmix0.right, splitmix0.split._2)
+  }
+
+  test("SplitMix64#toString") {
+    assertEquals(SplitMix64(0, 0).toString, "SplitMix64(0,1)")
   }
 }

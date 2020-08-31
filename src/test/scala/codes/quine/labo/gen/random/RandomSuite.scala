@@ -49,4 +49,21 @@ object RandomSuite extends SimpleTestSuite {
       assertBounds(rand, (-1e-10, -1e-20))
     }
   }
+
+  test("Random#split") {
+    val rand0 = Random(0)
+    val (rand1, rand2) = rand0.split
+    assertEquals(rand1.splitmix, rand0.splitmix.left)
+    assertEquals(rand2.splitmix, rand0.splitmix.right)
+  }
+
+  test("Random#left") {
+    val rand0 = Random(0)
+    assertEquals(rand0.left, rand0.split._1)
+  }
+
+  test("Random#right") {
+    val rand0 = Random(0)
+    assertEquals(rand0.right, rand0.split._2)
+  }
 }
