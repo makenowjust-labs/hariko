@@ -10,7 +10,10 @@ final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
     Tree(f(value), children.map(_.map(f)))
 
   def productMap[U, V](other: Tree[U])(f: (T, U) => V): Tree[V] =
-    Tree(f(value, other.value), children.map(other.productMap(_)((y, x) => f(x, y))) ++ other.children.map(productMap(_)(f)))
+    Tree(
+      f(value, other.value),
+      children.map(other.productMap(_)((y, x) => f(x, y))) ++ other.children.map(productMap(_)(f))
+    )
 
   def expand(f: T => Seq[T]): Tree[T] = {
     def fold(x: T): LazyList[Tree[T]] = LazyList.from(f(x)).map(x => Tree(x, fold(x)))

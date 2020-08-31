@@ -1,17 +1,18 @@
 package codes.quine.labo.gen.random
 
-/** Random is [[Xoroshiro128]] wrapper. */
-final case class Random(xoroshiro: Xoroshiro128) {
+/** Random is [[SplitMix64]] wrapper. */
+final case class Random(splitmix: SplitMix64) {
+
   /**
-    * Generates a random Long value.
+    * Generates a random long value.
     *
     * Long value range is `Long.MinValue <= x <= Long.MinValue`.
     */
   def nextLong: (Random, Long) =
-    (Random(xoroshiro.next), xoroshiro.value)
+    (Random(splitmix.next), splitmix.value)
 
   /**
-    * Generates a random Long value in bounds.
+    * Generates a random long value in bounds.
     *
     * Long value range is `min <= x <= max`, where `(min, max) = bounds`.
     */
@@ -29,7 +30,7 @@ final case class Random(xoroshiro: Xoroshiro128) {
   }
 
   /**
-    * Generates a random Double value.
+    * Generates a random double value.
     *
     * Double value range is `0 <= x <= 1`.
     */
@@ -39,19 +40,35 @@ final case class Random(xoroshiro: Xoroshiro128) {
   }
 
   /**
-    * Generates a random Double value in bounds.
+    * Generates a random double value in bounds.
     *
     * Double value range is `min <= x <= max`, where `(min, max) = bounds`.
     */
   def nextDouble(bounds: (Double, Double)): (Random, Double) = {
     val (min, max) = bounds
-    require(min <= max && !min.isNaN && min.isFinite && !max.isNaN && max.isFinite, "gen.random.Random#nextDouble: invalid bounds")
+    require(
+      min <= max && !min.isNaN && min.isFinite && !max.isNaN && max.isFinite,
+      "gen.random.Random#nextDouble: invalid bounds"
+    )
     val (rand, x) = nextDouble
     (rand, 2.0 * (min * 0.5 + x % (max * 0.5 - min * 0.5)))
   }
+
+  /** Splits into two variants. */
+  def split: (Random, Random) = {
+    val (left, right) = splitmix.split
+    (Random(left), Random(right))
+  }
+
+  /** Returns left variant. It is the same as `split._1`. */
+  def left: Random = Random(splitmix.left)
+
+  /** Returns left variant. It is the same as `split._2`. */
+  def right: Random = Random(splitmix.right)
 }
 
 object Random {
+
   /** Creates a new [[Random]] instance with the given seed. */
-  def apply(seed: Long): Random = Random(Xoroshiro128(seed))
+  def apply(seed: Long): Random = Random(SplitMix64(seed))
 }

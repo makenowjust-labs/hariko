@@ -31,7 +31,11 @@ lazy val root = project
       |import codes.quine.labo.gen.random._
       """.stripMargin,
     Compile / console / scalacOptions -= "-Wunused",
+    // Scaladoc options:
     // Set URL mapping of scala standard API for Scaladoc.
+    Compile / doc / scalacOptions ++= Seq(
+      "-groups"
+    ),
     apiMappings ++= scalaInstance.value.libraryJars
       .filter(file => file.getName.startsWith("scala-library") && file.getName.endsWith(".jar"))
       .map(_ -> url(s"http://www.scala-lang.org/api/${scalaVersion.value}/"))
