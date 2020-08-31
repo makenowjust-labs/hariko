@@ -1,0 +1,27 @@
+package codes.quine.labo.gen.util
+
+import minitest.SimpleTestSuite
+
+object ShrinkSuite extends SimpleTestSuite {
+  test("Shrink.long") {
+    assertEquals(Shrink.long(0, 0).toList, List.empty)
+    assertEquals(Shrink.long(0, 1).toList, List(0))
+    assertEquals(Shrink.long(0, -1).toList, List(0))
+    assertEquals(Shrink.long(0, 16).toList, List(8, 12, 14, 15))
+    assertEquals(Shrink.long(0, 15).toList, List(8, 12, 14))
+    assertEquals(Shrink.long(0, 14).toList, List(7, 11, 13))
+    assertEquals(Shrink.long(5, 10).toList, List(7, 9))
+    assertEquals(Shrink.long(10, 5).toList, List(8, 6))
+  }
+
+  test("Shrink.list") {
+    assertEquals(Shrink.list(0, List.empty).toList, List())
+    assertEquals(Shrink.list(0, List(1)).toList, List(List.empty))
+    assertEquals(Shrink.list(0, List(1, 2, 3)).toList, List(List(1), List(2, 3), List(1, 2), List(1, 3)))
+    assertEquals(Shrink.list(2, List(1, 2, 3)).toList, List(List(2, 3), List(1, 2), List(1, 3)))
+    assertEquals(
+      Shrink.list(3, List(1, 2, 3, 4)).toList,
+      List(List(1, 2, 3), List(1, 3, 4), List(1, 2, 4), List(2, 3, 4))
+    )
+  }
+}
