@@ -32,10 +32,10 @@ lazy val root = project
       """.stripMargin,
     Compile / console / scalacOptions -= "-Wunused",
     // Scaladoc options:
-    // Set URL mapping of scala standard API for Scaladoc.
     Compile / doc / scalacOptions ++= Seq(
       "-groups"
     ),
+    // Set URL mapping of scala standard API for Scaladoc.
     apiMappings ++= scalaInstance.value.libraryJars
       .filter(file => file.getName.startsWith("scala-library") && file.getName.endsWith(".jar"))
       .map(_ -> url(s"http://www.scala-lang.org/api/${scalaVersion.value}/"))

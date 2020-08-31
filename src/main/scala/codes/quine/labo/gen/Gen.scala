@@ -205,28 +205,28 @@ object Gen {
   def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
 
   /**
-    * Returns a byte [[Gen]] within the given range.
+    * Returns a byte [[Gen]].
     *
     * @group primitive
     */
   def byte(range: Range[Byte]): Gen[Byte] = long(range.map(_.toLong)).map(_.toByte)
 
   /**
-    * Returns a short [[Gen]] within the given range.
+    * Returns a short [[Gen]].
     *
     * @group primitive
     */
   def short(range: Range[Short]): Gen[Short] = long(range.map(_.toLong)).map(_.toShort)
 
   /**
-    * Returns an int [[Gen]] within the given range.
+    * Returns an int [[Gen]].
     *
     * @group primitive
     */
   def int(range: Range[Int]): Gen[Int] = long(range.map(_.toLong)).map(_.toInt)
 
   /**
-    * Returns a long [[Gen]] within the given range.
+    * Returns a long [[Gen]].
     *
     * @group primitive
     */
@@ -238,7 +238,7 @@ object Gen {
     }
 
   /**
-    * Returns a char [[Gen]] within the given range.
+    * Returns a char [[Gen]].
     *
     * @group primitive
     */
@@ -359,8 +359,8 @@ object Gen {
     Gen { (rand0, scale) =>
       val (rand1, rand2) = rand0.split
       // TODO: the following function is very unsafe, but how do we get generated value in safe?
-      val f = (x1: T1) => cogen1.variant(x1, gen).samples(rand1, scale).head
-      (rand2, Tree.pure(Some(f)))
+      val f = (x1: T1) => gen.samples(cogen1.variant(x1, rand1, scale), scale).head
+      (rand2, Tree.pure(Some(f))) // TODO: support shrinking.
     }
 
   /**
