@@ -6,21 +6,31 @@ package codes.quine.labo.gen.data
   * In this library, it represents a pair of current value and its shrinked values.
   */
 final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
+
+  /** Converts each values by `f`. */
   def map[U](f: T => U): Tree[U] =
     Tree(f(value), children.map(_.map(f)))
 
-  def productMap[U, V](other: Tree[U])(f: (T, U) => V): Tree[V] =
-    Tree(
-      f(value, other.value),
-      children.map(other.productMap(_)((y, x) => f(x, y))) ++ other.children.map(productMap(_)(f))
-    )
-
+  /**
+    * Expands each values by `f`.
+    *
+    * Expanded values are prepended to its children.
+    */
   def expand(f: T => Seq[T]): Tree[T] = {
-    def fold(x: T): LazyList[Tree[T]] = LazyList.from(f(x)).map(x => Tree(x, fold(x)))
-    Tree(value, fold(value) ++ children.map(_.expand(f)))
+    def forest(x: T): LazyList[Tree[T]] = LazyList.from(f(x)).map(x => Tree(x, forest(x)))
+    Tree(value, forest(value) ++ children.map(_.expand(f)))
   }
 }
 
 object Tree {
+
+  /** Create a new [[Tree]] which has value `x` and no children. */
   def pure[T](x: T): Tree[T] = Tree(x, LazyList.empty)
+
+  /** Returns two [[Tree]]s product with mapping. */
+  def map2[T, U, V](tree1: Tree[T], tree2: Tree[U])(f: (T, U) => V): Tree[V] =
+    Tree(
+      f(tree1.value, tree2.value),
+      tree1.children.map(map2(_, tree2)(f)) ++ tree2.children.map(map2(tree1, _)(f))
+    )
 }

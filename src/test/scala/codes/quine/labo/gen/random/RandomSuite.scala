@@ -4,7 +4,7 @@ import minitest.SimpleTestSuite
 
 object RandomSuite extends SimpleTestSuite {
   val Seeds = Seq(0, 42, -42)
-  val IterationNumber = 10000
+  val IterationNumber = 100
 
   test("Random#nextLong") {
     def assertBounds(rand: Random, bounds: (Long, Long)): Unit = {

@@ -13,7 +13,7 @@ final case class Range[T](base: T, run: Int => (T, T)) {
     (min, max)
   }
 
-  /** Returns a new range which value is mapped by `f`. */
+  /** Returns a new [[Range]] which value is converted by `f`. */
   def map[U](f: T => U): Range[U] =
     Range(f(base), scale => run(scale) match { case (x, y) => (f(x), f(y)) })
 }

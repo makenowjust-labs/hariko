@@ -115,7 +115,7 @@ object Gen {
     Gen { (rand0, scale) =>
       val (rand1, t) = gen1.run(rand0, scale)
       val (rand2, u) = gen2.run(rand1, scale)
-      (rand2, t.productMap(u)((a, b) => for (x <- a; y <- b) yield f(x, y)))
+      (rand2, Tree.map2(t, u)((a, b) => for (x <- a; y <- b) yield f(x, y)))
     }
 
   /**
@@ -300,8 +300,8 @@ object Gen {
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, keys) = setReplicate(n.toInt, keyGen).run(rand1, scale)
       val (rand3, values) = replicate(n.toInt, valueGen).run(rand2, scale)
-      val t = keys
-        .productMap(values)((ks, vs) => for (k <- ks; v <- vs) yield k.zip(v))
+      val t = Tree
+        .map2(keys, values)((ks, vs) => for (k <- ks; v <- vs) yield k.zip(v))
         .expand {
           case None     => Seq.empty
           case Some(xs) => Shrink.list(min.toInt, xs).map(Some(_))
