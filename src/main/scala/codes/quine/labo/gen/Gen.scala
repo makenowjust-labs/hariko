@@ -4,65 +4,66 @@ import data.Fun
 import data.Range
 import data.Tree
 import data.PartialFun._
+import data.UntupledFun._
 import random.Random
 import util.Shrink
 
 /**
   * Gen is random value generator in scale with shrinking.
   *
-  * Techenically, this type is isomorphic to `cats` type `ReaderT[Int, Nested[State[Random, *], Nested[Tree, Option, *], *], *]`.
+  * Techenically, this type is isomorphic to `cats` type `ReaderT[(Param, Int), Nested[State[Random, *], Nested[Tree, Option, *], *], *]`.
   * Thus it is lawful as `Functor`, `Applicative` or `FunctorFilter`.
   */
-final class Gen[T](val run: (Random, Int) => (Random, Tree[Option[T]])) {
+trait Gen[T] {
+
+  /**
+    * Runs this generator with the given parameter.
+    */
+  def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]])
 
   /**
     * Runs this generator endlessly with the given parameter.
     *
     * Note that this result becomes infinite [[scala.collection.immutable.LazyList LazyList]].
     */
-  def toLazyList(rand: Random, scale: Int): LazyList[(Random, Tree[Option[T]])] =
-    LazyList.iterate((rand, Tree.pure(Option.empty[T]))) { case (rand0, _) => run(rand0, scale) }.drop(1)
+  def toLazyList(rand: Random, param: Param, scale: Int): LazyList[(Random, Tree[Option[T]])] =
+    LazyList.iterate((rand, Tree.pure(Option.empty[T]))) { case (rand, _) => run(rand, param, scale) }.drop(1)
 
   /**
     * Generates values with the given parameter.
     *
     * It is for testing or demonstrating [[Gen]] behavior.
     */
-  def samples(rand: Random = Random(42), scale: Int = 100): LazyList[T] =
-    toLazyList(rand, scale).map(_._2.value).collect { case Some(x) => x }
+  def samples(param: Param = Param(42)): LazyList[T] =
+    toLazyList(param.toRandom, param, param.maxScale).map(_._2.value).collect { case Some(x) => x }
 
-  def unsafeRun(rand: Random, scale: Int): Option[(Random, Tree[T])] =
-    toLazyList(rand, scale)
+  def unsafeGet(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
+    toLazyList(rand, param, scale)
       .map { case (rand, t) => (rand, Tree.collapse(t)) }
-      .take(Gen.MaxUnsafeRunSize)
+      .take(param.maxDiscarded)
       .collect { case (rand, Some(t)) => (rand, t) }
       .headOption
 
+  def mapTree[U](f: Tree[Option[T]] => Tree[Option[U]]): Gen[U] =
+    Gen { (rand0, param, scale) =>
+      val (rand1, t) = run(rand0, param, scale)
+      (rand1, f(t))
+    }
+
   /** Returns a new [[Gen]] which contains a value which is returned by `f` with generated value. */
   def map[U](f: T => U): Gen[U] =
-    Gen { (rand0, scale) =>
-      val (rand1, t) = run(rand0, scale)
-      (rand1, t.map(_.map(f)))
-    }
+    mapTree(_.map(_.map(f)))
 
   /** Returns a new [[Gen]] which contains a value which `true` is returned by `f` with generated value. */
   def filter(f: T => Boolean): Gen[T] =
-    Gen { (rand0, scale) =>
-      val (rand1, t) = run(rand0, scale)
-      (rand1, t.map(_.filter(f)))
-    }
+    mapTree(_.map(_.filter(f)))
 
   /** Returns a new [[Gen]] which contains a value which `Some` is returned by `f` with generated value. */
   def mapFilter[U](f: T => Option[U]): Gen[U] = collect(f.unlift)
 
   /** Returns a new [[Gen]] which contains a value which is handled by `f` with generated value. */
   def collect[U](f: PartialFunction[T, U]): Gen[U] =
-    Gen { (rand0, scale) =>
-      val (rand1, t) = run(rand0, scale)
-      (rand1, t.map(_.collect(f)))
-    }
-
-  override def toString: String = s"Gen($run)"
+    mapTree(_.map(_.collect(f)))
 }
 
 /**
@@ -83,15 +84,16 @@ final class Gen[T](val run: (Random, Int) => (Random, Tree[Option[T]])) {
   */
 object Gen {
 
-  val MaxUnsafeRunSize = 128
-
   /**
-    * Creates a new [[Gen]] with given `run` function.
+    * Creates a new [[Gen]] with given function.
     *
     * @group util
     */
-  def apply[T](run: (Random, Int) => (Random, Tree[Option[T]])): Gen[T] =
-    new Gen(run)
+  def apply[T](f: (Random, Param, Int) => (Random, Tree[Option[T]])): Gen[T] =
+    new Gen[T] {
+      def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]]) =
+        f(rand, param, scale)
+    }
 
   /**
     * Delays `gen` evaluation for recursive [[Gen]].
@@ -99,8 +101,8 @@ object Gen {
     * @group util
     */
   def delay[T](gen: => Gen[T]): Gen[T] = {
-    lazy val gen1 = gen
-    Gen((rand, scale) => gen1.run(rand, scale))
+    lazy val lazyGen = gen
+    Gen((rand, param, scale) => lazyGen.run(rand, param, scale))
   }
 
   /**
@@ -108,14 +110,14 @@ object Gen {
     *
     * @group combinator
     */
-  def empty[T]: Gen[T] = Gen((rand, _) => (rand, Tree.pure(None)))
+  def empty[T]: Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(None)))
 
   /**
     * Returns a [[Gen]] which contains `x` only.
     *
     * @group combinator
     */
-  def pure[T](x: T): Gen[T] = Gen((rand, _) => (rand, Tree.pure(Some(x))))
+  def pure[T](x: T): Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(Some(x))))
 
   /**
     * Returns two [[Gen]]s product with mapping.
@@ -125,9 +127,9 @@ object Gen {
     * @group combinator
     */
   def map2[T1, T2, U](gen1: Gen[T1], gen2: Gen[T2])(f: (T1, T2) => U): Gen[U] =
-    Gen { (rand0, scale) =>
-      val (rand1, t) = gen1.run(rand0, scale)
-      val (rand2, u) = gen2.run(rand1, scale)
+    Gen { (rand0, param, scale) =>
+      val (rand1, t) = gen1.run(rand0, param, scale)
+      val (rand2, u) = gen2.run(rand1, param, scale)
       (rand2, Tree.map2(t, u)((a, b) => for (x <- a; y <- b) yield f(x, y)))
     }
 
@@ -196,10 +198,10 @@ object Gen {
     require(dists.forall(_._1 >= 1), "gen.Gen.frequency: invalid distribution")
     val ps :+ total = dists.scanLeft(0)(_ + _._1)
     val pairs = ps.zip(dists.map(_._2))
-    Gen { (rand0, scale) =>
+    Gen { (rand0, param, scale) =>
       val (rand1, n) = rand0.nextLong((1, total))
       val (_, gen) = pairs.findLast(_._1 < n).get
-      gen.run(rand1, scale)
+      gen.run(rand1, param, scale)
     }
   }
 
@@ -244,7 +246,7 @@ object Gen {
     * @group primitive
     */
   def long(range: Range[Long]): Gen[Long] =
-    Gen { (rand0, scale) =>
+    Gen { (rand0, _, scale) =>
       val (rand1, x) = rand0.nextLong(range.bounds(scale))
       val t = Tree.pure(x).expand(Shrink.long(range.base, _))
       (rand1, t.map(Some(_)))
@@ -272,10 +274,10 @@ object Gen {
     * @group collection
     */
   def list[T](gen: Gen[T], sizeRange: Range[Int]): Gen[List[T]] =
-    Gen { (rand0, scale) =>
+    Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
-      val (rand2, t0) = replicate(n.toInt, gen).run(rand1, scale)
+      val (rand2, t0) = replicate(n.toInt, gen).run(rand1, param, scale)
       val t1 = t0.expand {
         case None     => Seq.empty
         case Some(xs) => Shrink.list(min.toInt, xs).map(Some(_))
@@ -289,10 +291,10 @@ object Gen {
     * @group collection
     */
   def set[T](gen: Gen[T], sizeRange: Range[Int]): Gen[Set[T]] =
-    Gen { (rand0, scale) =>
+    Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
-      val (rand2, t0) = setReplicate(n.toInt, gen).run(rand1, scale)
+      val (rand2, t0) = setReplicate(n.toInt, gen).run(rand1, param, scale)
       val t1 = t0
         .expand {
           case None     => Seq.empty
@@ -308,11 +310,11 @@ object Gen {
     * @group collection
     */
   def map[K, V](keyGen: Gen[K], valueGen: Gen[V], sizeRange: Range[Int]): Gen[Map[K, V]] =
-    Gen { (rand0, scale) =>
+    Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
-      val (rand2, keys) = setReplicate(n.toInt, keyGen).run(rand1, scale)
-      val (rand3, values) = replicate(n.toInt, valueGen).run(rand2, scale)
+      val (rand2, keys) = setReplicate(n.toInt, keyGen).run(rand1, param, scale)
+      val (rand3, values) = replicate(n.toInt, valueGen).run(rand2, param, scale)
       val t = Tree
         .map2(keys, values)((ks, vs) => for (k <- ks; v <- vs) yield k.zip(v))
         .expand {
@@ -368,14 +370,8 @@ object Gen {
     *
     * @group function
     */
-  def partialFun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[T :=> Option[Tree[R]]] =
-    Gen { (rand0, scale) =>
-      val (rand1, rand2) = rand0.split
-      val f = (x: T) => gen.unsafeRun(cogen.variant(x, rand1, scale), scale).map(_._2)
-      val pfun = cogen.build(f)
-      val t = Tree.pure(pfun).expand(_.shrink(_.fold(LazyList.empty[Option[Tree[R]]])(_.children.map(Some(_)))))
-      (rand2, t.map(Some(_)))
-    }
+  def partialFun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[T :=> Option[R]] =
+    Gen((rand0, param, scale) => cogen.build(gen).run(rand0, param, scale))
 
   /**
     * Returns a [[Fun]] [[Gen]].
@@ -383,7 +379,9 @@ object Gen {
     * @group function
     */
   def fun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[Fun[T, R]] =
-    map2(partialFun(cogen, gen), gen)(Fun(_, _, true))
+    map2(partialFun(cogen, gen), gen)(Fun(_, _, false))
+      // Mark children as shurnk for better `toString`.
+      .mapTree { case Tree(x, xs) => Tree(x, xs.map(_.map(_.map(_.copy(isShrunk = true))))) }
 
   /**
     * Returns a function [[Gen]].
@@ -399,7 +397,7 @@ object Gen {
     * @group function
     */
   def function2[T1, T2, R](cogen1: Cogen[T1], cogen2: Cogen[T2], gen: Gen[R]): Gen[(T1, T2) => R] =
-    function1(Cogen.tuple2(cogen1, cogen2), gen).map(Function.untupled(_))
+    fun(Cogen.tuple2(cogen1, cogen2), gen).map(new UntupledFun2(_))
 
   /**
     * Returns a three inputs function [[Gen]].
@@ -412,7 +410,7 @@ object Gen {
       cogen3: Cogen[T3],
       gen: Gen[R]
   ): Gen[(T1, T2, T3) => R] =
-    function1(Cogen.tuple3(cogen1, cogen2, cogen3), gen).map(Function.untupled(_))
+    fun(Cogen.tuple3(cogen1, cogen2, cogen3), gen).map(new UntupledFun3(_))
 
   /**
     * Returns a four inputs function [[Gen]].
@@ -426,5 +424,5 @@ object Gen {
       cogen4: Cogen[T4],
       gen: Gen[R]
   ): Gen[(T1, T2, T3, T4) => R] =
-    function1(Cogen.tuple4(cogen1, cogen2, cogen3, cogen4), gen).map(Function.untupled(_))
+    fun(Cogen.tuple4(cogen1, cogen2, cogen3, cogen4), gen).map(new UntupledFun4(_))
 }

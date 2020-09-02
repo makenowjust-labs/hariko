@@ -1,6 +1,9 @@
 package codes.quine.labo.gen
 package util
 
+import data.Tree
+import data.PartialFun._
+
 object Shrink {
   def long(base: Long, x: Long): LazyList[Long] =
     if (x == base) LazyList.empty
@@ -26,4 +29,17 @@ object Shrink {
 
     loop(xs).dropWhile(_.size < minSize)
   }
+
+  def partialFun[T, R](pfun: T :=> Option[Tree[R]]): LazyList[T :=> Option[Tree[R]]] =
+    pfun match {
+      case Lift(domain, f) =>
+        Shrink
+          .list(0, domain.toList)
+          .map(dom => if (dom.isEmpty) Empty[T, Option[Tree[R]]]() else Lift(dom.toSet, f)) ++
+          LazyList.from(domain).map(x => (x, f(x))).flatMap {
+            case (x, Some(y)) => y.children.map(y => Lift(domain, Map(x -> Some(y)).withDefault(f)))
+            case _            => LazyList.empty
+          }
+      case _ => LazyList.empty
+    }
 }

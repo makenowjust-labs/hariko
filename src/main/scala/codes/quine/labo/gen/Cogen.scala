@@ -1,31 +1,33 @@
 package codes.quine.labo.gen
 
 import scala.annotation.tailrec
-import scala.util.chaining.scalaUtilChainingOps
 
-import data.Fun
-import data.Lazy
 import data.PartialFun._
 import random.Random
 import util.Bytes
+import util.Shrink
+import data.Tree
+import data.LocalFun
 
 /** Cogen is dual of [[Gen]], which is used for building function [[Gen]]s. */
 trait Cogen[T] { cogen =>
 
-  /** Modifies `rand` by `x` value. */
-  def variant(x: T, rand: Random, scale: Int): Random
+  def build[R](gen: Gen[R]): Gen[T :=> Option[R]]
 
-  def build[R](f: T => R): T :=> R
-
-  /** Applies `f` before `variant`. */
   def imap[U](f: T => U)(g: U => T): Cogen[U] =
     new Cogen[U] {
-      def variant(y: U, rand: Random, scale: Int): Random = cogen.variant(g(y), rand, scale)
-      def build[R](h: U => R): U :=> R = Iso(g, f, Lazy(cogen.build(f.andThen(h))))
+      def build[R](gen: Gen[R]): Gen[U :=> Option[R]] =
+        cogen.build(gen).map {
+          case Empty() => Empty()
+          case pfun    => Iso(g, f, pfun)
+        }
     }
 }
 
 /**
+  * @groupname util Utility Functions
+  * @groupprio util 0
+  *
   * @groupname primitive Primitive Co-generators
   * @groupprio primitive 200
   *
@@ -38,14 +40,31 @@ trait Cogen[T] { cogen =>
 object Cogen {
 
   /**
+    * Creates a [[data.PartialFun PartialFun]] generator via [[Lift]].
+    *
+    * @group util
+    */
+  def lift[T, R](domain: Set[T], gen: Gen[R])(f: (T, Random) => Random): Gen[T :=> Option[R]] =
+    Gen { (rand0, param, scale) =>
+      val (rand1, rand2) = rand0.split
+      val func: T => Option[Tree[R]] = x => {
+        val rand3 = f(x, rand2)
+        gen.unsafeGet(rand3, param, scale).map(_._2)
+      }
+      val pfun: T :=> Option[Tree[R]] = Lift(domain, func)
+      val t = Tree.pure(pfun).expand(Shrink.partialFun)
+      (rand1, t.map(pfun => Some(pfun.map(_.map(_.value)))))
+    }
+
+  /**
     * Returns a unit [[Cogen]].
     *
     * @group primitive
     */
   def unit: Cogen[Unit] =
     new Cogen[Unit] {
-      def variant(x: Unit, rand: Random, scale: Int): Random = rand
-      def build[R](f: Unit => R): Unit :=> R = Point(f(()))
+      def build[R](gen: Gen[R]): Gen[Unit :=> Option[R]] =
+        lift(Set(()), gen)((_, rand) => rand)
     }
 
   /**
@@ -55,9 +74,8 @@ object Cogen {
     */
   def boolean: Cogen[Boolean] =
     new Cogen[Boolean] {
-      def variant(x: Boolean, rand: Random, scale: Int): Random =
-        if (x) rand.right else rand.left
-      def build[R](f: Boolean => R): Boolean :=> R = Lift(Set(true, false), f)
+      def build[R](gen: Gen[R]): Gen[Boolean :=> Option[R]] =
+        lift(Set(true, false), gen)((x, rand) => if (x) rand.right else rand.left)
     }
 
   /**
@@ -67,10 +85,11 @@ object Cogen {
     */
   def byte: Cogen[Byte] =
     new Cogen[Byte] {
-      @tailrec def variant(x: Byte, rand: Random, scale: Int): Random =
+      @tailrec def variant(x: Byte, rand: Random): Random =
         if (x == 0) rand.left
-        else variant((x >> 1).toByte, (if ((x & 1) == 0) rand.left else rand.right).right, scale)
-      def build[R](f: Byte => R): Byte :=> R = Lift(Set.from((-128 to 127)).map(_.toByte), f)
+        else variant(((x & 0xff) >>> 1).toByte, (if ((x & 1) == 0) rand.left else rand.right).right)
+      def build[R](gen: Gen[R]): Gen[Byte :=> Option[R]] =
+        lift(Set.from(-128 to 127).map(_.toByte), gen)(variant)
     }
 
   /**
@@ -89,7 +108,13 @@ object Cogen {
   def int: Cogen[Int] =
     tuple4(byte, byte, byte, byte).imap(Bytes.compose(_))(Bytes.decompose(_))
 
-  // TODO: define long [[Cogen]] instance.
+  /**
+    * Returns a long [[Cogen]].
+    *
+    * @group primitive
+    */
+  def long: Cogen[Long] =
+    tuple2(int, int).imap(Bytes.compose(_))(Bytes.decompose(_))
 
   /**
     * Returns a char [[Cogen]].
@@ -115,12 +140,6 @@ object Cogen {
       val instance = either(unit, tuple2(cogen, list))
         .imap(backward)(forward)
 
-      @tailrec def variant(xs: List[T], rand: Random, scale: Int): Random =
-        xs match {
-          case Nil     => rand.left
-          case x :: xs => variant(xs, cogen.variant(x, rand.right, scale), scale)
-        }
-
       def forward(x: List[T]): Either[Unit, (T, List[T])] =
         x match {
           case Nil     => Left(())
@@ -133,8 +152,8 @@ object Cogen {
           case Right((x, xs)) => x :: xs
         }
 
-      def build[R](f: List[T] => R): List[T] :=> R =
-        instance.build(f)
+      def build[R](gen: Gen[R]): Gen[List[T] :=> Option[R]] =
+        instance.build(gen)
     }
 
   /**
@@ -144,13 +163,15 @@ object Cogen {
     */
   def either[T, U](leftCogen: Cogen[T], rightCogen: Cogen[U]): Cogen[Either[T, U]] =
     new Cogen[Either[T, U]] {
-      def variant(x: Either[T, U], rand: Random, scale: Int): Random =
-        x match {
-          case Left(a)  => leftCogen.variant(a, rand.left, scale)
-          case Right(b) => rightCogen.variant(b, rand.right, scale)
+      def build[R](gen: Gen[R]): Gen[Either[T, U] :=> Option[R]] =
+        Gen.delay {
+          val leftGen = leftCogen.build(gen)
+          val rightGen = rightCogen.build(gen)
+          Gen.map2(leftGen, rightGen) {
+            case (Empty(), Empty()) => Empty()
+            case (l, r)             => Choice(l, r)
+          }
         }
-      def build[R](f: Either[T, U] => R): Either[T, U] :=> R =
-        Choice(Lazy(leftCogen.build(a => f(Left(a)))), Lazy(rightCogen.build(b => f(Right(b)))))
     }
 
   /**
@@ -168,10 +189,19 @@ object Cogen {
     */
   def tuple2[T1, T2](cogen1: Cogen[T1], cogen2: Cogen[T2]): Cogen[(T1, T2)] =
     new Cogen[(T1, T2)] {
-      def variant(xy: (T1, T2), rand: Random, scale: Int): Random =
-        cogen1.variant(xy._1, rand, scale).pipe(cogen2.variant(xy._2, _, scale))
-      def build[R](f: ((T1, T2)) => R): (T1, T2) :=> R =
-        Uncurry(Lazy(cogen1.build(x1 => cogen2.build(x2 => f((x1, x2))))))
+      def build[R](gen: Gen[R]): Gen[(T1, T2) :=> Option[R]] =
+        Gen.delay {
+          val gen2 = cogen2.build(gen)
+          val gen1 = cogen1.build(gen2)
+          gen1.map {
+            case Empty() => Empty()
+            case pfun1 =>
+              Uncurry(pfun1.map {
+                case None        => Empty()
+                case Some(pfun2) => pfun2
+              })
+          }
+        }
     }
 
   /**
@@ -199,47 +229,15 @@ object Cogen {
       case (x1, x2, x3, x4) => ((x1, x2, x3), x4)
     }
 
-  /**
-    * Returns a function [[Cogen]].
-    *
-    * @group function
-    */
   def function1[T1, R](gen1: Gen[T1], cogen: Cogen[R]): Cogen[T1 => R] =
     new Cogen[T1 => R] {
-      def variant(f: T1 => R, rand0: Random, scale: Int): Random =
-        gen1.unsafeRun(rand0, scale) match {
-          case Some((rand1, t)) => cogen.variant(f(t.value), rand1, scale)
-          case None =>
-            f match {
-              case fun: Fun[T1, R] => cogen.variant(fun.fallback, rand0, scale)
-              case _               => rand0
-            }
+      def build[S](gen: Gen[S]): Gen[(T1 => R) :=> Option[S]] =
+        Gen.delay {
+          val pfunGen = cogen.build(gen)
+          Gen.map2(gen1, pfunGen) {
+            case (_, Empty()) => Empty()
+            case (x, pfun)    => Iso(f => f(x), (y: R) => new LocalFun(x, y), pfun)
+          }
         }
-      // TODO: support shrinking higher order function (is it possible?)
-      def build[S](f: (T1 => R) => S): (T1 => R) :=> S = Empty[T1 => R, S]()
     }
-
-  /**
-    * Returns a two inputs function [[Cogen]].
-    *
-    * @group function
-    */
-  def function2[T1, T2, V](gen1: Gen[T1], gen2: Gen[T2], cogen: Cogen[V]): Cogen[(T1, T2) => V] =
-    function1(Gen.tuple2(gen1, gen2), cogen).imap(Function.untupled(_))(_.tupled)
-
-  /**
-    * Returns a three inputs function [[Cogen]].
-    *
-    * @group function
-    */
-  def function3[T1, T2, T3, V](gen1: Gen[T1], gen2: Gen[T2], cogen: Cogen[V]): Cogen[(T1, T2) => V] =
-    function1(Gen.tuple2(gen1, gen2), cogen).imap(Function.untupled(_))(_.tupled)
-
-  /**
-    * Returns a four inputs function [[Cogen]].
-    *
-    * @group function
-    */
-  def function4[T1, T2, V](gen1: Gen[T1], gen2: Gen[T2], cogen: Cogen[V]): Cogen[(T1, T2) => V] =
-    function1(Gen.tuple2(gen1, gen2), cogen).imap(Function.untupled(_))(_.tupled)
 }

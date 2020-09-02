@@ -3,7 +3,7 @@ package codes.quine.labo.gen.data
 /**
   * Tree is [[https://en.wikipedia.org/wiki/Rose_tree rose tree]] implementation.
   *
-  * In this library, it represents a pair of current value and its shrinked values.
+  * In this library, it represents a pair of current value and its shrunk values.
   */
 final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
 
