@@ -26,9 +26,12 @@ lazy val root = project
     name := "gen",
     version := "0.1.0-SNAPSHOT",
     console / initialCommands := """
+      |import scala.concurrent.ExecutionContext.Implicits.global
+      |
       |import codes.quine.labo.gen._
       |import codes.quine.labo.gen.data._
       |import codes.quine.labo.gen.random._
+      |import codes.quine.labo.gen.util._
       """.stripMargin,
     Compile / console / scalacOptions -= "-Wunused",
     // Scaladoc options:
