@@ -17,7 +17,7 @@ final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
     * Expanded values are prepended to its children.
     */
   def expand(f: T => Seq[T]): Tree[T] = {
-    def forest(x: T): LazyList[Tree[T]] = LazyList.from(f(x)).map(x => Tree(x, forest(x)))
+    def forest(x: T): LazyList[Tree[T]] = LazyList(x).flatMap(f).map(x => Tree(x, forest(x)))
     Tree(value, forest(value) ++ children.map(_.expand(f)))
   }
 }
@@ -33,4 +33,15 @@ object Tree {
       f(tree1.value, tree2.value),
       tree1.children.map(map2(_, tree2)(f)) ++ tree2.children.map(map2(tree1, _)(f))
     )
+
+  /**
+    * Collapses option values in tree. If root value is None, result is also None.
+    *
+    * This signature looks like `Traverse.sequence` function, but its semantics are not relevant.
+    */
+  def collapse[T](tree: Tree[Option[T]]): Option[Tree[T]] =
+    tree match {
+      case Tree(Some(value), children) => Some(Tree(value, children.collect(Function.unlift(collapse(_)))))
+      case _                           => None
+    }
 }

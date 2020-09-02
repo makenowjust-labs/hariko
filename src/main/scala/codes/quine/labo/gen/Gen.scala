@@ -1,7 +1,9 @@
 package codes.quine.labo.gen
 
+import data.Fun
 import data.Range
 import data.Tree
+import data.PartialFun._
 import random.Random
 import util.Shrink
 
@@ -14,18 +16,27 @@ import util.Shrink
 final class Gen[T](val run: (Random, Int) => (Random, Tree[Option[T]])) {
 
   /**
+    * Runs this generator endlessly with the given parameter.
+    *
+    * Note that this result becomes infinite [[scala.collection.immutable.LazyList LazyList]].
+    */
+  def toLazyList(rand: Random, scale: Int): LazyList[(Random, Tree[Option[T]])] =
+    LazyList.iterate((rand, Tree.pure(Option.empty[T]))) { case (rand0, _) => run(rand0, scale) }.drop(1)
+
+  /**
     * Generates values with the given parameter.
     *
     * It is for testing or demonstrating [[Gen]] behavior.
     */
   def samples(rand: Random = Random(42), scale: Int = 100): LazyList[T] =
-    LazyList
-      .iterate((rand, Option.empty[T])) {
-        case (rand0, _) =>
-          val (rand1, t) = run(rand0, scale)
-          (rand1, t.value)
-      }
-      .collect { case (_, Some(x)) => x }
+    toLazyList(rand, scale).map(_._2.value).collect { case Some(x) => x }
+
+  def unsafeRun(rand: Random, scale: Int): Option[(Random, Tree[T])] =
+    toLazyList(rand, scale)
+      .map { case (rand, t) => (rand, Tree.collapse(t)) }
+      .take(Gen.MaxUnsafeRunSize)
+      .collect { case (rand, Some(t)) => (rand, t) }
+      .headOption
 
   /** Returns a new [[Gen]] which contains a value which is returned by `f` with generated value. */
   def map[U](f: T => U): Gen[U] =
@@ -71,6 +82,8 @@ final class Gen[T](val run: (Random, Int) => (Random, Tree[Option[T]])) {
   * @groupprio function 220
   */
 object Gen {
+
+  val MaxUnsafeRunSize = 128
 
   /**
     * Creates a new [[Gen]] with given `run` function.
@@ -351,24 +364,41 @@ object Gen {
     map2(tuple3(gen1, gen2, gen3), gen4) { case ((x1, x2, x3), x4) => (x1, x2, x3, x4) }
 
   /**
+    * Returns a [[PartialFun]] [[Gen]].
+    *
+    * @group function
+    */
+  def partialFun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[T :=> Option[Tree[R]]] =
+    Gen { (rand0, scale) =>
+      val (rand1, rand2) = rand0.split
+      val f = (x: T) => gen.unsafeRun(cogen.variant(x, rand1, scale), scale).map(_._2)
+      val pfun = cogen.build(f)
+      val t = Tree.pure(pfun).expand(_.shrink(_.fold(LazyList.empty[Option[Tree[R]]])(_.children.map(Some(_)))))
+      (rand2, t.map(Some(_)))
+    }
+
+  /**
+    * Returns a [[Fun]] [[Gen]].
+    *
+    * @group function
+    */
+  def fun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[Fun[T, R]] =
+    map2(partialFun(cogen, gen), gen)(Fun(_, _, true))
+
+  /**
     * Returns a function [[Gen]].
     *
     * @group function
     */
-  def function1[T1, U](cogen1: Cogen[T1], gen: Gen[U]): Gen[T1 => U] =
-    Gen { (rand0, scale) =>
-      val (rand1, rand2) = rand0.split
-      // TODO: the following function is very unsafe, but how do we get generated value in safe?
-      val f = (x1: T1) => gen.samples(cogen1.variant(x1, rand1, scale), scale).head
-      (rand2, Tree.pure(Some(f))) // TODO: support shrinking.
-    }
+  def function1[T1, R](cogen1: Cogen[T1], gen: Gen[R]): Gen[T1 => R] =
+    fun(cogen1, gen).map(_.asInstanceOf[T1 => R])
 
   /**
     * Returns a two inputs function [[Gen]].
     *
     * @group function
     */
-  def function2[T1, T2, U](cogen1: Cogen[T1], cogen2: Cogen[T2], gen: Gen[U]): Gen[(T1, T2) => U] =
+  def function2[T1, T2, R](cogen1: Cogen[T1], cogen2: Cogen[T2], gen: Gen[R]): Gen[(T1, T2) => R] =
     function1(Cogen.tuple2(cogen1, cogen2), gen).map(Function.untupled(_))
 
   /**
@@ -376,12 +406,12 @@ object Gen {
     *
     * @group function
     */
-  def function3[T1, T2, T3, U](
+  def function3[T1, T2, T3, R](
       cogen1: Cogen[T1],
       cogen2: Cogen[T2],
       cogen3: Cogen[T3],
-      gen: Gen[U]
-  ): Gen[(T1, T2, T3) => U] =
+      gen: Gen[R]
+  ): Gen[(T1, T2, T3) => R] =
     function1(Cogen.tuple3(cogen1, cogen2, cogen3), gen).map(Function.untupled(_))
 
   /**
@@ -389,12 +419,12 @@ object Gen {
     *
     * @group function
     */
-  def function4[T1, T2, T3, T4, U](
+  def function4[T1, T2, T3, T4, R](
       cogen1: Cogen[T1],
       cogen2: Cogen[T2],
       cogen3: Cogen[T3],
       cogen4: Cogen[T4],
-      gen: Gen[U]
-  ): Gen[(T1, T2, T3, T4) => U] =
+      gen: Gen[R]
+  ): Gen[(T1, T2, T3, T4) => R] =
     function1(Cogen.tuple4(cogen1, cogen2, cogen3, cogen4), gen).map(Function.untupled(_))
 }

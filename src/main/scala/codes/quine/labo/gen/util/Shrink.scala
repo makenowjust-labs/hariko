@@ -1,4 +1,5 @@
-package codes.quine.labo.gen.util
+package codes.quine.labo.gen
+package util
 
 object Shrink {
   def long(base: Long, x: Long): LazyList[Long] =
