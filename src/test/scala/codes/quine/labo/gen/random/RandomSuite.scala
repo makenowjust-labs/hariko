@@ -3,7 +3,7 @@ package codes.quine.labo.gen.random
 import minitest.SimpleTestSuite
 
 object RandomSuite extends SimpleTestSuite {
-  val Seeds = Seq(0, 42, -42)
+  val Seeds: Seq[Int] = Seq(0, 42, -42)
   val IterationNumber = 100
 
   test("Random#nextLong") {
