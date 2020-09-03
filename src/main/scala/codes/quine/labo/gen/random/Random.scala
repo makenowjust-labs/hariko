@@ -50,8 +50,11 @@ final case class Random(splitmix: SplitMix64) {
       min <= max && !min.isNaN && min.isFinite && !max.isNaN && max.isFinite,
       "gen.random.Random#nextDouble: invalid bounds"
     )
-    val (rand, x) = nextDouble
-    (rand, 2.0 * (min * 0.5 + x % (max * 0.5 - min * 0.5)))
+    if (min == max) (this, min)
+    else {
+      val (rand, x) = nextDouble
+      (rand, 2.0 * (min * 0.5 + x % (max * 0.5 - min * 0.5)))
+    }
   }
 
   /** Splits into two variants. */

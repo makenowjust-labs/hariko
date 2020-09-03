@@ -261,6 +261,26 @@ object Gen {
     long(range.map(_.toLong)).map(_.toChar)
 
   /**
+    * Returns a float [[Gen]].
+    *
+    * @group primitive
+    */
+  def float(range: Range[Float]): Gen[Float] =
+    double(range.map(_.toFloat)).map(_.toFloat)
+
+  /**
+    * Returns a double [[Gen]].
+    *
+    * @group primitive
+    */
+  def double(range: Range[Double]): Gen[Double] =
+    Gen { (rand0, _, scale) =>
+      val (rand1, x) = rand0.nextDouble(range.bounds(scale))
+      val t = Tree.pure(x).expand(Shrink.double(range.base, _))
+      (rand1, t.map(Some(_)))
+    }
+
+  /**
     * Returns a string [[Gen]].
     *
     * @group collection

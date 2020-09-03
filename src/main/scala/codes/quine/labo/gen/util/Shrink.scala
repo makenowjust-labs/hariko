@@ -10,6 +10,15 @@ object Shrink {
     else if (Math.abs(x - base) == 1) LazyList(base)
     else LazyList.iterate(x / 2 - base / 2)(_ / 2).takeWhile(_ != 0).map(x - _)
 
+  def double(base: Double, x: Double): LazyList[Double] =
+    if (x == base) LazyList.empty
+    else
+      LazyList
+        .iterate(x / 2 - base / 2)(_ / 2)
+        .takeWhile(x => x != 0 && !x.isNaN && !x.isInfinite)
+        .take(32)
+        .map(x - _)
+
   def list[T](minSize: Int, xs: List[T]): LazyList[List[T]] = {
     def interleave[T](xs: LazyList[T], ys: LazyList[T]): LazyList[T] =
       if (xs.isEmpty) ys

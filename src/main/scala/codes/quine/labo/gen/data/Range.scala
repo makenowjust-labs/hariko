@@ -60,6 +60,23 @@ object Range {
       )
   }
 
+  /** Returns a linear scaling range. */
+  def linear(min: Float, max: Float): Range[Float] = linear(min, min, max)
+
+  /** Returns a linear scaling range. */
+  def linear(min: Double, max: Double): Range[Double] = linear(min, min, max)
+
+  /** Returns a linear scaling range. */
+  def linear(base: Float, min: Float, max: Float): Range[Float] =
+    linear(base.toDouble, min.toDouble, max.toDouble).map(_.toFloat)
+
+  /** Returns a linear scaling range. */
+  def linear(base: Double, min: Double, max: Double): Range[Double] = {
+    require(min <= max, "gen.data.Range.linear: invalid bounds")
+    require(min <= base && base <= max, "gen.data.Range.linear: invalid base")
+    Range(base, scale => (base - (base - min) * (scale / 100.0), base + (max - base) * (scale / 100.0)))
+  }
+
   /**
     * Returns a linear scaling range of BigIng.
     *

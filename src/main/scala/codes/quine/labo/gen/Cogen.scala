@@ -124,6 +124,22 @@ object Cogen {
   def char: Cogen[Char] = short.imap(_.toChar)(_.toShort)
 
   /**
+   * Returns a float [[Cogen]].
+   *
+   * @group primitive
+   */
+  def float: Cogen[Float] =
+    int.imap(java.lang.Float.intBitsToFloat(_))(java.lang.Float.floatToIntBits(_))
+
+  /**
+   * Returns a double [[Cogen]].
+   *
+   * @group primitive
+   */
+  def double: Cogen[Double] =
+  long.imap(java.lang.Double.longBitsToDouble(_))(java.lang.Double.doubleToLongBits(_))
+
+  /**
     * Returns a string [[Cogen]].
     *
     * @group collection
