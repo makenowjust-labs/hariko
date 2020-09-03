@@ -44,11 +44,11 @@ object Cogen {
     *
     * @group util
     */
-  def lift[T, R](domain: Set[T], gen: Gen[R])(f: (T, Random) => Random): Gen[T :=> Option[R]] =
+  def lift[T, R](domain: Set[T], gen: Gen[R])(variant: (T, Random) => Random): Gen[T :=> Option[R]] =
     Gen { (rand0, param, scale) =>
       val (rand1, rand2) = rand0.split
       val func: T => Option[Tree[R]] = x => {
-        val rand3 = f(x, rand2)
+        val rand3 = variant(x, rand2)
         gen.unsafeGet(rand3, param, scale).map(_._2)
       }
       val pfun: T :=> Option[Tree[R]] = Lift(domain, func)

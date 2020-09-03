@@ -3,6 +3,9 @@ package codes.quine.labo.gen.random
 /** Random is [[SplitMix64]] wrapper. */
 final case class Random(splitmix: SplitMix64) {
 
+  /** Returns a next RNG. */
+  def next: Random = Random(splitmix.next)
+
   /**
     * Generates a random long value.
     *

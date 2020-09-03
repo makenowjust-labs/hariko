@@ -37,6 +37,22 @@ trait Gen[T] {
   def samples(param: Param = Param(42)): LazyList[T] =
     toLazyList(param.toRandom, param, param.maxScale).map(_._2.value).collect { case Some(x) => x }
 
+  /**
+    * Generates a tree with the given parameter.
+    *
+    * It is for testing or demonstrating [[Gen]] behavior.
+    */
+  def sampleTree(param: Param = Param(42)): Tree[Option[T]] =
+    run(param.toRandom, param, param.maxScale)._2
+
+  /**
+    * Gets the first valid generated tree.
+    *
+    * It tries to find valid tree in `param.maxDiscarded` times.
+    * If it is not found, it returns `None`.
+    *
+    * Note that a result tree is collapsed.
+    */
   def unsafeGet(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
     toLazyList(rand, param, scale)
       .map { case (rand, t) => (rand, Tree.collapse(t)) }
@@ -44,6 +60,7 @@ trait Gen[T] {
       .collect { case (rand, Some(t)) => (rand, t) }
       .headOption
 
+  /** Modifies each trees by `f`. */
   def mapTree[U](f: Tree[Option[T]] => Tree[Option[U]]): Gen[U] =
     Gen { (rand0, param, scale) =>
       val (rand1, t) = run(rand0, param, scale)

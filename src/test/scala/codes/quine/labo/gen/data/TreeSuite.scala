@@ -27,7 +27,8 @@ object TreeSuite extends SimpleTestSuite {
   }
 
   test("Tree#expand") {
-    val t = Tree(2, LazyList(Tree.pure(1)))
-    assertEquals(t.expand(x => if (x == 1) Seq.empty else Seq(x - 1)), Tree(2, LazyList(Tree.pure(1), Tree.pure(1))))
+    val t0 = Tree(2, LazyList(Tree.pure(1)))
+    val t1 = t0.expand(x => if (x == 1) Seq.empty else Seq(x - 1))
+    assertEquals(t1, Tree(2, LazyList(Tree(1, LazyList(Tree.pure(1))), Tree.pure(1))))
   }
 }

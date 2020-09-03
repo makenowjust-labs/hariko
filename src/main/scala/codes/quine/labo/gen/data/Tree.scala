@@ -17,8 +17,8 @@ final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
     * Expanded values are prepended to its children.
     */
   def expand(f: T => Seq[T]): Tree[T] = {
-    def forest(x: T): LazyList[Tree[T]] = LazyList(x).flatMap(f).map(x => Tree(x, forest(x)))
-    Tree(value, forest(value) ++ children.map(_.expand(f)))
+    def forest(x: T): LazyList[Tree[T]] = LazyList(x).flatMap(f).map(x => Tree(x, forest(x))) ++ children.map(_.expand(f))
+    Tree(value, forest(value))
   }
 }
 
