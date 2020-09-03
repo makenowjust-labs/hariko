@@ -5,6 +5,7 @@ import data.Tree
 
 /** Utility functions for showing values. */
 object Show {
+
   /** Shows generated tree value for debugging. */
   def tree[T](tree: Tree[Option[T]], maxDepth: Int): String = {
     def option(value: Option[T]): String =

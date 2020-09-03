@@ -9,7 +9,9 @@ final case class Fun[T, R](pfun: T :=> Option[R], fallback: R, isShrunk: Boolean
 
   override def toString: String =
     if (isShrunk) {
-      val table = pfun.table.collect { case (a, Some(b)) => s"case ${Show.any(a)} => ${Show.any(b)}" } :+ s"case _ => ${Show.any(fallback)}"
+      val table = pfun.table.collect {
+        case (a, Some(b)) => s"case ${Show.any(a)} => ${Show.any(b)}"
+      } :+ s"case _ => ${Show.any(fallback)}"
       table.mkString("{ ", "; ", " }")
     } else s"Fun($pfun, $fallback, $isShrunk)"
 }
