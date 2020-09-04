@@ -1,6 +1,8 @@
 package codes.quine.labo.gen
 package data
 
+import scala.annotation.showAsInfix
+
 sealed abstract class PartialFun[T, R] extends Product with Serializable {
 
   def map[S](f: R => S): PartialFun[T, S]
@@ -11,7 +13,7 @@ sealed abstract class PartialFun[T, R] extends Product with Serializable {
 }
 
 object PartialFun {
-  type :=>[T, R] = PartialFun[T, R]
+  @showAsInfix type :=>[T, R] = PartialFun[T, R]
 
   final case class Empty[T, R]() extends (T :=> R) {
     def map[S](f: R => S): T :=> S = Empty()

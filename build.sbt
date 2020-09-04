@@ -9,7 +9,8 @@ ThisBuild / scalacOptions ++= Seq(
   "UTF-8",
   "-feature",
   "-deprecation",
-  "-Wunused"
+  "-Wunused",
+  "-language:implicitConversions"
 )
 
 // Scalafix config:
@@ -45,5 +46,6 @@ lazy val root = project
       .toMap,
     // Settings for test:
     libraryDependencies += "io.monix" %% "minitest" % "2.8.2" % Test,
-    testFrameworks += new TestFramework("minitest.runner.Framework")
+    testFrameworks += new TestFramework("minitest.runner.Framework"),
+    doctestTestFramework := DoctestTestFramework.Minitest
   )

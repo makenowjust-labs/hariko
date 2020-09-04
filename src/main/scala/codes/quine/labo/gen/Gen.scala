@@ -9,28 +9,39 @@ import random.Random
 import util.Shrink
 
 /**
-  * Gen is random value generator in scale with shrinking.
+  * Gen is a random value generator integrated with shrinking.
   *
-  * Techenically, this type is isomorphic to `cats` type `ReaderT[(Param, Int), Nested[State[Random, *], Nested[Tree, Option, *], *], *]`.
+  * Techenically, this type is isomorphic to `ReaderT[(Param, Int), Nested[State[Random, *], Nested[Tree, Option, *], *], *]`.
   * Thus it is lawful as `Functor`, `Applicative` or `FunctorFilter`.
   */
 trait Gen[T] {
 
   /**
-    * Runs this generator with the given parameter.
+    * Generate a random value along with parameters.
+    *
+    * It take three parameters:
+    *
+    *   - The first is PRNG for this generation.
+    *   - The second is parameter of this generation.
+    *   - The third is scale of this generation. It bounds `[0, 100]`.
+    *
+    * It returns a pair:
+    *
+    *   - The first is PRNG after this generation.
+    *   - The second is shrinking tree. The root becomes generated value.
     */
   def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]])
 
   /**
-    * Runs this generator endlessly with the given parameter.
+    * Runs this generator endlessly along with parameters.
     *
-    * Note that this result becomes infinite [[scala.collection.immutable.LazyList LazyList]].
+    * NOTE: this result becomes an infinite `LazyList`.
     */
   def toLazyList(rand: Random, param: Param, scale: Int): LazyList[(Random, Tree[Option[T]])] =
     LazyList.iterate((rand, Tree.pure(Option.empty[T]))) { case (rand, _) => run(rand, param, scale) }.drop(1)
 
   /**
-    * Generates values with the given parameter.
+    * Generates values along with the parameter.
     *
     * It is for testing or demonstrating [[Gen]] behavior.
     */
@@ -38,52 +49,76 @@ trait Gen[T] {
     toLazyList(param.toRandom, param, param.maxScale).map(_._2.value).collect { case Some(x) => x }
 
   /**
-    * Generates a tree with the given parameter.
+    * Selects the first valid generated value from this generator.
     *
-    * It is for testing or demonstrating [[Gen]] behavior.
+    * It tries to generate values at most `param.maxDiscarded` times.
+    * If there is no valid value in these values, it returns `None` instead.
+    *
+    * NOTE: this result tree is collapsed, so it makes shirinking poor when
+    * this method is used in generator implementation.
     */
-  def sampleTree(param: Param = Param(42)): Tree[Option[T]] =
-    run(param.toRandom, param, param.maxScale)._2
-
-  /**
-    * Gets the first valid generated tree.
-    *
-    * It tries to find valid tree in `param.maxDiscarded` times.
-    * If it is not found, it returns `None`.
-    *
-    * Note that a result tree is collapsed.
-    */
-  def unsafeGet(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
+  def unsafeHead(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
     toLazyList(rand, param, scale)
       .map { case (rand, t) => (rand, Tree.collapse(t)) }
       .take(param.maxDiscarded)
       .collect { case (rand, Some(t)) => (rand, t) }
       .headOption
 
-  /** Modifies each trees by `f`. */
+  /**
+    * Like `gen.map(f)`, but it maps over trees.
+    */
   def mapTree[U](f: Tree[Option[T]] => Tree[Option[U]]): Gen[U] =
     Gen { (rand0, param, scale) =>
       val (rand1, t) = run(rand0, param, scale)
       (rand1, f(t))
     }
 
-  /** Returns a new [[Gen]] which contains a value which is returned by `f` with generated value. */
+  /**
+    * Builds a new generator applied the function to each generated values.
+    *
+    * {{{
+    * scala> Gen.int(Range.linear(0, 10)).map(_ + 1).samples().take(10).toList
+    * val res0: List[Int] = List(4, 9, 9, 3, 5, 8, 8, 11, 5, 1)
+    * }}}
+    */
   def map[U](f: T => U): Gen[U] =
     mapTree(_.map(_.map(f)))
 
-  /** Returns a new [[Gen]] which contains a value which `true` is returned by `f` with generated value. */
-  def filter(f: T => Boolean): Gen[T] =
-    mapTree(_.map(_.filter(f)))
+  /**
+    * Selects generated values of this generator which satisfy a predicate.
+    *
+    * {{{
+    * scala> Gen.int(Range.linear(0, 10)).filter(_ % 2 == 0).samples().take(10).toList
+    * val res0: List[Int] = List(8, 8, 2, 4, 10, 4, 0, 4, 10, 6)
+    * }}}
+    */
+  def filter(p: T => Boolean): Gen[T] =
+    mapTree(_.map(_.filter(p)))
 
-  /** Returns a new [[Gen]] which contains a value which `Some` is returned by `f` with generated value. */
-  def mapFilter[U](f: T => Option[U]): Gen[U] = collect(f.unlift)
+  /**
+    * Like `gen.filter(p)`, but it is combined with `map`.
+    *
+    * Filtering is handled via `Option` instead of `Boolean` such that
+    * output type `U` can be different than input type `T`.
+    *
+    * {{{
+    * scala> Gen.string(Gen.char(Range.constant('0', '9')), Range.linear(0, 10))
+    *      |   .mapFilter(_.toIntOption).samples().take(10).toList
+    * val res0: List[Int] = List(993, 3013, 5521, 6, 8172, 390205, 11701394, 656394435, 533, 424056212)
+    * }}}
+    */
+  def mapFilter[U](p: T => Option[U]): Gen[U] = collect(p.unlift)
 
-  /** Returns a new [[Gen]] which contains a value which is handled by `f` with generated value. */
-  def collect[U](f: PartialFunction[T, U]): Gen[U] =
-    mapTree(_.map(_.collect(f)))
+  /**
+    * Like `gen.mapFilter(p)`, but it accepts `PartialFunction` instead.
+    */
+  def collect[U](pf: PartialFunction[T, U]): Gen[U] =
+    mapTree(_.map(_.collect(pf)))
 }
 
 /**
+  * Utilities for generators.
+  *
   * @groupname util Utility Functions
   * @groupprio util 0
   *
@@ -102,7 +137,9 @@ trait Gen[T] {
 object Gen {
 
   /**
-    * Creates a new [[Gen]] with given function.
+    * Creates a new generator from the function.
+    *
+    * See [[Gen#run]] for detailed explanation of function parameters and result.
     *
     * @group util
     */
@@ -113,7 +150,7 @@ object Gen {
     }
 
   /**
-    * Delays `gen` evaluation for recursive [[Gen]].
+    * Delays `gen` evaluation for recursive generator.
     *
     * @group util
     */
@@ -123,23 +160,23 @@ object Gen {
   }
 
   /**
-    * Returns an empty [[Gen]].
+    * Creates an empty generator.
     *
     * @group combinator
     */
   def empty[T]: Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(None)))
 
   /**
-    * Returns a [[Gen]] which contains `x` only.
+    * Creates a constant generator that generates `x` always.
     *
     * @group combinator
     */
   def pure[T](x: T): Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(Some(x))))
 
   /**
-    * Returns two [[Gen]]s product with mapping.
+    * Builds two generators product with the mapping.
     *
-    * It is the same as `Gen.tuple2(gen1, gen2).map(f.tupled)`
+    * It is equivalent to `Gen.tuple2(gen1, gen2).map(f.tupled)`
     *
     * @group combinator
     */
@@ -151,9 +188,7 @@ object Gen {
     }
 
   /**
-    * Returns three [[Gen]]s product with mapping.
-    *
-    * It is the same as `Gen.tuple3(gen1, gen2, gen3).map(f.tupled)`
+    * Builds three generators product with the mapping.
     *
     * @group combinator
     */
@@ -161,9 +196,7 @@ object Gen {
     map2(tuple2(gen1, gen2), gen3) { case ((x1, x2), x3) => f(x1, x2, x3) }
 
   /**
-    * Returns three [[Gen]]s product with mapping.
-    *
-    * It is the same as `Gen.tuple4(gen1, gen2, gen3).map(f.tupled)`
+    * Builds four generators product with the mapping.
     *
     * @group combinator
     */
@@ -173,7 +206,7 @@ object Gen {
     map2(tuple3(gen1, gen2, gen3), gen4) { case ((x1, x2, x3), x4) => f(x1, x2, x3, x4) }
 
   /**
-    * Repeat `gen` with `n` times.
+    * Repeats the generator with `n` times.
     *
     * @group combinator
     */
@@ -189,7 +222,7 @@ object Gen {
   }
 
   /**
-    * Repeat `gen` with `n` times without generated value duplication.
+    * Repeats the generator with `n` times without generated value duplication.
     *
     * @group combinator
     */
@@ -206,15 +239,18 @@ object Gen {
   }
 
   /**
-    * Creates a new [[Gen]] which choices a [[Gen]] following the given distributions.
+    * Builds a new generator which choices a value according to distribution.
+    *
+    * For example, `Gen.frequency(1 -> genA, 2 -> genB)` choices
+    * `genA` and `genB` values according to `1:2` ratio.
     *
     * @group combinator
     */
-  def frequency[T](dists: (Int, Gen[T])*): Gen[T] = {
-    require(dists.nonEmpty, "gen.Gen.frequency: no distributions")
-    require(dists.forall(_._1 >= 1), "gen.Gen.frequency: invalid distribution")
-    val ps :+ total = dists.scanLeft(0)(_ + _._1)
-    val pairs = ps.zip(dists.map(_._2))
+  def frequency[T](dist: (Int, Gen[T])*): Gen[T] = {
+    require(dist.nonEmpty, "gen.Gen.frequency: no distribution")
+    require(dist.forall(_._1 >= 1), "gen.Gen.frequency: invalid distribution")
+    val ps :+ total = dist.scanLeft(0)(_ + _._1)
+    val pairs = ps.zip(dist.map(_._2))
     Gen { (rand0, param, scale) =>
       val (rand1, n) = rand0.nextLong((1, total))
       val (_, gen) = pairs.findLast(_._1 < n).get
@@ -223,42 +259,42 @@ object Gen {
   }
 
   /**
-    * Returns a unit [[Gen]].
+    * A unit generator.
     *
     * @group primitive
     */
   def unit: Gen[Unit] = pure(())
 
   /**
-    * Returns a boolean [[Gen]].
+    * A boolean generator.
     *
     * @group primitive
     */
   def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
 
   /**
-    * Returns a byte [[Gen]].
+    * A byte generator in range.
     *
     * @group primitive
     */
   def byte(range: Range[Byte]): Gen[Byte] = long(range.map(_.toLong)).map(_.toByte)
 
   /**
-    * Returns a short [[Gen]].
+    * A short generator in range.
     *
     * @group primitive
     */
   def short(range: Range[Short]): Gen[Short] = long(range.map(_.toLong)).map(_.toShort)
 
   /**
-    * Returns an int [[Gen]].
+    * An int generator in range.
     *
     * @group primitive
     */
   def int(range: Range[Int]): Gen[Int] = long(range.map(_.toLong)).map(_.toInt)
 
   /**
-    * Returns a long [[Gen]].
+    * A long generator in range.
     *
     * @group primitive
     */
@@ -270,7 +306,7 @@ object Gen {
     }
 
   /**
-    * Returns a char [[Gen]].
+    * A char generator in range.
     *
     * @group primitive
     */
@@ -278,7 +314,7 @@ object Gen {
     long(range.map(_.toLong)).map(_.toChar)
 
   /**
-    * Returns a float [[Gen]].
+    * A float generator in range.
     *
     * @group primitive
     */
@@ -286,7 +322,7 @@ object Gen {
     double(range.map(_.toFloat)).map(_.toFloat)
 
   /**
-    * Returns a double [[Gen]].
+    * A double generator in range.
     *
     * @group primitive
     */
@@ -298,7 +334,9 @@ object Gen {
     }
 
   /**
-    * Returns a string [[Gen]].
+    * A string generator.
+    *
+    * A generated string consists `charGen` values, and its size is in `sizeRange`.
     *
     * @group collection
     */
@@ -306,7 +344,9 @@ object Gen {
     list(charGen, sizeRange).map(_.mkString)
 
   /**
-    * Returns a list [[Gen]].
+    * A list generator.
+    *
+    * A generated list consists `gen` values, and its size is in `sizeRange`.
     *
     * @group collection
     */
@@ -323,7 +363,9 @@ object Gen {
     }
 
   /**
-    * Returns a set [[Gen]].
+    * A set generator.
+    *
+    * A generated set consists `gen` values, and its size is in `sizeRange`.
     *
     * @group collection
     */
@@ -342,7 +384,10 @@ object Gen {
     }
 
   /**
-    * Returns a map [[Gen]].
+    * A map generator.
+    *
+    * Keys are generated from `keyGen`, and values are generated from `valueGen`.
+    * A generated map's size is in `sizeRange`.
     *
     * @group collection
     */
@@ -363,15 +408,21 @@ object Gen {
     }
 
   /**
-    * Returns an option [[Gen]].
+    * An option [[Gen]].
+    *
+    * It generates `None` and `Some(x)` according to `1:9` ratio.
+    * `gen` is generator for `Some(x)` values.
     *
     * @group collection
     */
   def option[T](gen: Gen[T]): Gen[Option[T]] =
-    frequency(1 -> pure(None), 1 -> gen.map(Some(_)))
+    frequency(1 -> pure(None), 9 -> gen.map(Some(_)))
 
   /**
-    * Returns an either [[Gen]].
+    * An either [[Gen]].
+    *
+    * It generates `Left(x)` and `Right(x)` according to `1:1` ratio.
+    * `leftGen` is generator for `Left(x)` values, and `rightGen` is generator for `Right(x)` values.
     *
     * @group collection
     */
@@ -379,7 +430,7 @@ object Gen {
     frequency(1 -> leftGen.map(Left(_)), 1 -> rightGen.map(Right(_)))
 
   /**
-    * Returns a two elements tuple [[Gen]].
+    * A two elements tuple generator.
     *
     * @group collection
     */
@@ -387,7 +438,7 @@ object Gen {
     map2(gen1, gen2)((_, _))
 
   /**
-    * Returns a three elements tuple [[Gen]].
+    * A three elements tuple generator.
     *
     * @group collection
     */
@@ -395,7 +446,7 @@ object Gen {
     map2(tuple2(gen1, gen2), gen3) { case ((x1, x2), x3) => (x1, x2, x3) }
 
   /**
-    * Returns a four elements tuple [[Gen]].
+    * A four elements tuple generator.
     *
     * @group collection
     */
@@ -403,25 +454,25 @@ object Gen {
     map2(tuple3(gen1, gen2, gen3), gen4) { case ((x1, x2, x3), x4) => (x1, x2, x3, x4) }
 
   /**
-    * Returns a [[PartialFun]] [[Gen]].
+    * A [[data.PartialFun PartialFun]] generator.
     *
     * @group function
     */
-  def partialFun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[T :=> Option[R]] =
+  private def partialFun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[T :=> Option[R]] =
     Gen((rand0, param, scale) => cogen.build(gen).run(rand0, param, scale))
 
   /**
-    * Returns a [[Fun]] [[Gen]].
+    * A [[data.Fun Fun]] generator.
     *
     * @group function
     */
-  def fun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[Fun[T, R]] =
+  private def fun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[Fun[T, R]] =
     map2(partialFun(cogen, gen), gen)(Fun(_, _, false))
       // Mark children as shurnk for better `toString`.
       .mapTree { case Tree(x, xs) => Tree(x, xs.map(_.map(_.map(_.copy(isShrunk = true))))) }
 
   /**
-    * Returns a function [[Gen]].
+    * A function generator.
     *
     * @group function
     */
@@ -429,7 +480,7 @@ object Gen {
     fun(cogen1, gen).map(_.asInstanceOf[T1 => R])
 
   /**
-    * Returns a two inputs function [[Gen]].
+    * A two inputs function generator.
     *
     * @group function
     */
@@ -437,7 +488,7 @@ object Gen {
     fun(Cogen.tuple2(cogen1, cogen2), gen).map(new UntupledFun2(_))
 
   /**
-    * Returns a three inputs function [[Gen]].
+    * A three inputs function generator.
     *
     * @group function
     */
@@ -450,7 +501,7 @@ object Gen {
     fun(Cogen.tuple3(cogen1, cogen2, cogen3), gen).map(new UntupledFun3(_))
 
   /**
-    * Returns a four inputs function [[Gen]].
+    * A four inputs function generator.
     *
     * @group function
     */
