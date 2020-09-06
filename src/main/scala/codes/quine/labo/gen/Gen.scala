@@ -117,7 +117,7 @@ trait Gen[T] {
 }
 
 /**
-  * Utilities for generators.
+  * Utilities for generator.
   *
   * @groupname util Utility Functions
   * @groupprio util 0
