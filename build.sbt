@@ -47,5 +47,11 @@ lazy val root = project
     // Settings for test:
     libraryDependencies += "io.monix" %% "minitest" % "2.8.2" % Test,
     testFrameworks += new TestFramework("minitest.runner.Framework"),
-    doctestTestFramework := DoctestTestFramework.Minitest
+    doctestTestFramework := DoctestTestFramework.Minitest,
+    // Surpress warnings in doctest generated files.
+    libraryDependencies ++= Seq(
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.1" % Provided cross CrossVersion.full
+    ),
+    scalacOptions += "-P:silencer:globalFilters=toVoid is never used"
   )

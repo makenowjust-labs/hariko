@@ -7,7 +7,9 @@ package codes.quine.labo.hariko.data
   */
 final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
 
-  /** Converts each values by `f`. */
+  /**
+    * Converts each values by `f`.
+    */
   def map[U](f: T => U): Tree[U] =
     Tree(f(value), children.map(_.map(f)))
 
@@ -25,7 +27,9 @@ final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
 
 object Tree {
 
-  /** Create a new [[Tree]] which has value `x` and no children. */
+  /**
+    * Create a new tree which has value `x` and no children.
+    */
   def pure[T](x: T): Tree[T] = Tree(x, LazyList.empty)
 
   /** Returns two [[Tree]]s product with mapping. */

@@ -4,12 +4,22 @@ package util
 import data.Tree
 import data.PartialFun._
 
+/**
+  * Utility functions for shrinking.
+  */
 object Shrink {
+
+  /**
+    * Shrinks a long value to the base.
+    */
   def long(base: Long, x: Long): LazyList[Long] =
     if (x == base) LazyList.empty
     else if (Math.abs(x - base) == 1) LazyList(base)
     else LazyList.iterate(x / 2 - base / 2)(_ / 2).takeWhile(_ != 0).map(x - _)
 
+  /**
+    * Shrinks a double value to the base.
+    */
   def double(base: Double, x: Double): LazyList[Double] =
     if (x == base) LazyList.empty
     else
@@ -19,6 +29,9 @@ object Shrink {
         .take(32)
         .map(x - _)
 
+  /**
+    * Shrinks a list.
+    */
   def list[T](minSize: Int, xs: List[T]): LazyList[List[T]] = {
     def interleave[T](xs: LazyList[T], ys: LazyList[T]): LazyList[T] =
       if (xs.isEmpty) ys
@@ -39,14 +52,17 @@ object Shrink {
     loop(xs).dropWhile(_.size < minSize)
   }
 
+  /**
+    * Shrink a partial function.
+    */
   def partialFun[T, R](pfun: T :=> Option[Tree[R]]): LazyList[T :=> Option[Tree[R]]] =
     pfun match {
-      case Lift(domain, f) =>
+      case Unlift(domain, f) =>
         Shrink
           .list(0, domain.toList)
-          .map(dom => if (dom.isEmpty) Empty[T, Option[Tree[R]]]() else Lift(dom.toSet, f)) ++
+          .map(dom => if (dom.isEmpty) Empty[T, Option[Tree[R]]]() else Unlift(dom.toSet, f)) ++
           LazyList.from(domain).map(x => (x, f(x))).flatMap {
-            case (x, Some(y)) => y.children.map(y => Lift(domain, Map(x -> Some(y)).withDefault(f)))
+            case (x, Some(y)) => y.children.map(y => Unlift(domain, Map(x -> Some(y)).withDefault(f)))
             case _            => LazyList.empty
           }
       case _ => LazyList.empty

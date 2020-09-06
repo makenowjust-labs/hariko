@@ -3,10 +3,39 @@ package util
 
 import data.Tree
 
-/** Utility functions for showing values. */
+/**
+  * Utility functions for showing values.
+  */
 object Show {
 
-  /** Shows generated tree value for debugging. */
+  /**
+    * Shows generated tree value for debugging.
+    *
+    * {{{
+    * scala> import codes.quine.labo.hariko._
+    * scala> val t = Gen.int(Range.linear(0, 10)).run(Random(0), Param(0), 100)._2
+    * scala> Show.tree(t, 3)
+    * res0: String =
+    * 9
+    * - 5
+    *   - 3
+    *     - ...
+    *   - 4
+    *     - ...
+    * - 7
+    *   - 4
+    *     - ...
+    *   - 6
+    *     - ...
+    * - 8
+    *   - 4
+    *     - ...
+    *   - 6
+    *     - ...
+    *   - 7
+    *     - ...
+    * }}}
+    */
   def tree[T](tree: Tree[Option[T]], maxDepth: Int): String = {
     def option(value: Option[T]): String =
       value.fold("<discard>")(any(_))
@@ -29,7 +58,11 @@ object Show {
     loop(tree, 0).mkString("\n")
   }
 
-  /** Shows the give value as human-readable format as possible. */
+  /**
+    * Shows the value as human-readable format as possible.
+    *
+    * Currently it makes string and char values format better than `toString`.
+    */
   def any(value: Any): String =
     value match {
       case s: String => string(s)

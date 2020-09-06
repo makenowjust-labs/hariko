@@ -62,7 +62,7 @@ object Cogen {
     *
     * @group util
     */
-  def lift[T](domain: Set[T])(variant: (T, Random) => Random): Cogen[T] =
+  def unlift[T](domain: Set[T])(variant: (T, Random) => Random): Cogen[T] =
     new Cogen[T] {
       def build[R](gen: Gen[R]): Gen[T :=> Option[R]] =
         Gen { (rand0, param, scale) =>
@@ -71,7 +71,7 @@ object Cogen {
             val rand3 = variant(x, rand2)
             gen.unsafeHead(rand3, param, scale).map(_._2)
           }
-          val pfun: T :=> Option[Tree[R]] = Lift(domain, func)
+          val pfun: T :=> Option[Tree[R]] = Unlift(domain, func)
           val t = Tree.pure(pfun).expand(Shrink.partialFun)
           (rand1, t.map(pfun => Some(pfun.map(_.map(_.value)))))
         }
@@ -83,7 +83,7 @@ object Cogen {
     * @group primitive
     */
   def unit: Cogen[Unit] =
-    lift(Set(()))((_, rand) => rand)
+    unlift(Set(()))((_, rand) => rand)
 
   /**
     * A boolean cogen.
@@ -91,7 +91,7 @@ object Cogen {
     * @group primitive
     */
   def boolean: Cogen[Boolean] =
-    lift(Set(true, false))((x, rand) => if (x) rand.right else rand.left)
+    unlift(Set(true, false))((x, rand) => if (x) rand.right else rand.left)
 
   /**
     * A byte cogen.
@@ -102,7 +102,7 @@ object Cogen {
     @tailrec def variant(x: Byte, rand: Random): Random =
       if (x == 0) rand.left
       else variant(((x & 0xff) >>> 1).toByte, (if ((x & 1) == 0) rand.left else rand.right).right)
-    lift(Set.from(-128 to 127).map(_.toByte))(variant)
+    unlift(Set.from(-128 to 127).map(_.toByte))(variant)
   }
 
   /**

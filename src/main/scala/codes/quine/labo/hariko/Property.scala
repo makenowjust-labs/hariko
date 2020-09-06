@@ -8,42 +8,110 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.blocking
 import scala.util.DynamicVariable
+import scala.util.Failure
+import scala.util.Try
 import scala.util.control.NonFatal
 
 import data.Tree
 import random.Random
+import util.Show
 
+/**
+  * Property is a property for testing.
+  */
 final case class Property(run: (Random, Param, ExecutionContext) => (Random, Property.Result)) {
 
-  def run(param: Param)(implicit ec: ExecutionContext): (Random, Property.Result) = run(param.toRandom, param)
-
+  /**
+    * Runs this property on the implicit execution context.
+    */
   def run(rand: Random, param: Param)(implicit ec: ExecutionContext): (Random, Property.Result) = run(rand, param, ec)
 
+  /**
+    * Modifies parameter of this property.
+    */
   def withParam(f: Param => Param): Property =
     Property((rand, param, ec) => run(rand, f(param), ec))
 }
 
 object Property {
-  sealed abstract class Result(val isSuccessful: Boolean) extends Serializable with Product
-  final case object Pass extends Result(true)
-  final case class CounterExample(value: Any) extends Result(false)
-  final case object Discarded extends Result(false)
-  final case class Error(ex: Throwable) extends Result(false)
-  final case object Timeout extends Result(false)
 
+  /**
+    * Result is result of property execution.
+    */
+  sealed abstract class Result extends Serializable with Product
+
+  /**
+    * Passes the propety.
+    */
+  final case class Pass(test: Int) extends Result {
+    override def toString: String = s"pass (test: $test)"
+  }
+
+  /**
+    * A counter example is found.
+    */
+  final case class CounterExample(test: Int, shrink: Int, value: Any) extends Result {
+    override def toString: String =
+      s"""counter example (test: $test, shrink: $shrink)
+         |
+         |value: ${Show.any(value)}
+         |""".stripMargin
+  }
+
+  /**
+    * No value is generated.
+    */
+  final case class NoValue(test: Int) extends Result {
+    override def toString: String = s"no value (test: $test)"
+  }
+
+  /**
+    * An error is occured in property execution.
+    */
+  final case class Error(test: Int, shrink: Int, value: Any, exception: Throwable) extends Result {
+    override def toString: String =
+      s"""error (test: $test, shrink: $shrink)
+         |
+         |value: ${Show.any(value)}
+         |
+         |exception: ${exception.toString}
+         |""".stripMargin
+  }
+
+  /**
+    * Times out property execution.
+    */
+  final case object Timeout extends Result {
+    override def toString: String = "timeout"
+  }
+
+  /**
+    * Builds a property `f` on the generator.
+    */
   def forAll[T](gen: Gen[T])(f: T => Boolean): Property =
     Property { (rand, param, ec) =>
-      def run(rand0: Random, scale: Int): (Random, Property.Result) =
+      def run(test: Int, rand0: Random, scale: Int): (Random, Property.Result) =
         if (checkTimeout(param)) (rand0, Timeout)
         else {
           val (rand1, t) = gen.run(rand0, param, scale)
           if (checkTimeout(param)) (rand1, Timeout)
           else
             try t.value match {
-              case Some(x) => if (f(x)) (rand1, Pass) else (rand1, shrinkCounterExample(t, param, f))
-              case None    => (rand1, Discarded)
+              case Some(x) =>
+                if (f(x)) (rand1, Pass(test))
+                else
+                  shrinkCounterExample(t, param)(f) match {
+                    case Some((shrink, x)) => (rand1, CounterExample(test, shrink, x))
+                    case _                 => (rand1, Timeout)
+                  }
+              case None => (rand1, NoValue(test))
             } catch {
-              case NonFatal(ex) => (rand1, Error(ex))
+              case NonFatal(_) =>
+                val u = t.map(_.map(x => (x, Try(f(x)))))
+                shrinkCounterExample(u, param)(x => x._2.isSuccess) match {
+                  case Some((shrink, (x, Failure(ex)))) => (rand1, Error(test, shrink, x, ex))
+                  case _                                => (rand1, Timeout)
+                }
             }
         }
 
@@ -51,13 +119,13 @@ object Property {
 
       @tailrec def loop(rand: Random, scale: Int, successful: Int = 0, discard: Int = 0): (Random, Property.Result) =
         if (checkTimeout(param)) (rand, Property.Timeout)
-        else if (successful >= param.minSuccessful) (rand, Property.Pass)
-        else if (discard >= param.maxDiscarded) (rand, Property.Discarded)
+        else if (successful >= param.minSuccessful) (rand, Pass(successful))
+        else if (discard >= param.maxDiscarded) (rand, NoValue(successful + 1))
         else
-          run(rand, scale) match {
-            case (rand, Property.Pass) =>
+          run(successful + 1, rand, scale) match {
+            case (rand, _: Pass) =>
               loop(rand, Math.min(param.maxScale, scale + scaleStep), successful + 1, 0)
-            case (rand, Property.Discarded) =>
+            case (rand, _: NoValue) =>
               loop(rand, Math.min(param.maxScale, scale + scaleStep), successful, discard + 1)
             case (rand, result) => (rand, result)
           }
@@ -65,6 +133,7 @@ object Property {
       val future = Future(blocking {
         Property.startTime.withValue(System.currentTimeMillis())(loop(rand, param.minScale))
       })(ec)
+      // TODO: a thread still alives when propety is heavy. How do we shut down the thread?
       try Await.result(future, param.timeout)
       catch {
         case _: TimeoutException =>
@@ -72,28 +141,31 @@ object Property {
       }
     }
 
-  private def shrinkCounterExample[T](tree: Tree[Option[T]], param: Param, f: T => Boolean): Result = {
+  /**
+    * Shrinks a counter example from tree.
+    */
+  private def shrinkCounterExample[T](tree: Tree[Option[T]], param: Param)(f: T => Boolean): Option[(Int, T)] = {
     @tailrec def loop(
         children: LazyList[Tree[Option[T]]],
-        result: Result,
+        x: T,
         shrink: Int = 0,
         discard: Int = 0,
         stack: List[(Int, LazyList[Tree[Option[T]]])] = List.empty
-    ): Result =
-      if (checkTimeout(param)) Timeout
-      else if (shrink >= param.maxShrink) result
+    ): Option[(Int, T)] =
+      if (checkTimeout(param)) None
+      else if (shrink >= param.maxShrink) Some((shrink, x))
       else if (discard >= param.maxDiscarded) stack match {
-        case (d, ts) :: s => loop(ts, result, shrink, d, s)
-        case Nil          => result
+        case (d, ts) :: s => loop(ts, x, shrink, d, s)
+        case Nil          => Some((shrink, x))
       }
       else
         children.headOption match {
-          case Some(Tree(None, ts))             => loop(ts, result, shrink + 1, discard + 1, (discard, children.tail) :: stack)
-          case Some(Tree(Some(x), ts)) if !f(x) => loop(ts, CounterExample(x), shrink + 1, discard, List.empty)
-          case Some(_)                          => loop(children.tail, result, shrink + 1, discard, stack)
-          case None                             => result
+          case Some(Tree(None, ts))             => loop(ts, x, shrink + 1, discard + 1, (discard, children.tail) :: stack)
+          case Some(Tree(Some(x), ts)) if !f(x) => loop(ts, x, shrink + 1, discard, List.empty)
+          case Some(_)                          => loop(children.tail, x, shrink + 1, discard, stack)
+          case None                             => Some((shrink, x))
         }
-    loop(tree.children, CounterExample(tree.value.get))
+    loop(tree.children, tree.value.get)
   }
 
   private val startTime: DynamicVariable[Long] = new DynamicVariable(0L)

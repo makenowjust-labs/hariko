@@ -1,9 +1,13 @@
 package codes.quine.labo.hariko.random
 
-/** Random is [[SplitMix64]] wrapper. */
+/**
+  * Random is [[SplitMix64]] wrapper with utilities.
+  */
 final case class Random(splitmix: SplitMix64) {
 
-  /** Returns a next RNG. */
+  /**
+    * Returns a next PRNG.
+    */
   def next: Random = Random(splitmix.next)
 
   /**
@@ -60,21 +64,29 @@ final case class Random(splitmix: SplitMix64) {
     }
   }
 
-  /** Splits into two variants. */
+  /**
+    * Splits into two variants.
+    */
   def split: (Random, Random) = {
     val (left, right) = splitmix.split
     (Random(left), Random(right))
   }
 
-  /** Returns left variant. It is the same as `split._1`. */
+  /**
+    * Returns left variant. It is the same as `split._1`.
+    */
   def left: Random = Random(splitmix.left)
 
-  /** Returns left variant. It is the same as `split._2`. */
+  /**
+    * Returns left variant. It is the same as `split._2`.
+    */
   def right: Random = Random(splitmix.right)
 }
 
 object Random {
 
-  /** Creates a new [[Random]] instance with the given seed. */
+  /**
+    * Creates a new PRNG instance from the seed.
+    */
   def apply(seed: Long): Random = Random(SplitMix64(seed))
 }

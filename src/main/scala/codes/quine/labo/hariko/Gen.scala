@@ -76,9 +76,11 @@ trait Gen[T] {
   /**
     * Builds a new generator applied the function to each generated values.
     *
+    * Example:
+    *
     * {{{
     * scala> Gen.int(Range.linear(0, 10)).map(_ + 1).samples().take(10).toList
-    * val res0: List[Int] = List(4, 9, 9, 3, 5, 8, 8, 11, 5, 1)
+    * res0: List[Int] = List(4, 9, 9, 3, 5, 8, 8, 11, 5, 1)
     * }}}
     */
   def map[U](f: T => U): Gen[U] =
@@ -87,9 +89,11 @@ trait Gen[T] {
   /**
     * Selects generated values of this generator which satisfy a predicate.
     *
+    * Example:
+    *
     * {{{
     * scala> Gen.int(Range.linear(0, 10)).filter(_ % 2 == 0).samples().take(10).toList
-    * val res0: List[Int] = List(8, 8, 2, 4, 10, 4, 0, 4, 10, 6)
+    * res0: List[Int] = List(8, 8, 2, 4, 10, 4, 0, 4, 10, 6)
     * }}}
     */
   def filter(p: T => Boolean): Gen[T] =
@@ -100,12 +104,6 @@ trait Gen[T] {
     *
     * Filtering is handled via `Option` instead of `Boolean` such that
     * output type `U` can be different than input type `T`.
-    *
-    * {{{
-    * scala> Gen.string(Gen.char(Range.constant('0', '9')), Range.linear(0, 10))
-    *      |   .mapFilter(_.toIntOption).samples().take(10).toList
-    * val res0: List[Int] = List(993, 3013, 5521, 6, 8172, 390205, 11701394, 656394435, 533, 424056212)
-    * }}}
     */
   def mapFilter[U](p: T => Option[U]): Gen[U] = collect(p.unlift)
 
@@ -178,6 +176,18 @@ object Gen {
     *
     * It is equivalent to `Gen.tuple2(gen1, gen2).map(f.tupled)`
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.map2(Gen.int(Range.linear(0, 10)), Gen.boolean) { (k, v) =>
+    *      |   Map(k -> v)
+    *      | }.samples().take(3).toList
+    * res0: List[Map[Int, Boolean]] = List(Map(3 -> true), Map(8 -> true), Map(4 -> true))
+    * }}}
+    *
+    * NOTE: this and `tuple2` are associative. In short, it holds
+    * `Gen.map2(Gen.tuple2(gen1, gen2), gen3) { case ((x, y), z) => (x, y, z) } == Gen.map2(gen1, Gen.tuple2(gen2, gen3)) { case (x, (y, z)) => (x, y, z) }`.
+    *
     * @group combinator
     */
   def map2[T1, T2, U](gen1: Gen[T1], gen2: Gen[T2])(f: (T1, T2) => U): Gen[U] =
@@ -244,6 +254,13 @@ object Gen {
     * For example, `Gen.frequency(1 -> genA, 2 -> genB)` choices
     * `genA` and `genB` values according to `1:2` ratio.
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.frequency(3 -> Gen.pure("fizz"), 5 -> Gen.pure("buzz")).samples().take(10).toList
+    * res0: List[String] = List(fizz, buzz, buzz, buzz, fizz, fizz, fizz, buzz, buzz, buzz)
+    * }}}
+    *
     * @group combinator
     */
   def frequency[T](dist: (Int, Gen[T])*): Gen[T] = {
@@ -268,6 +285,13 @@ object Gen {
   /**
     * A boolean generator.
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.boolean.samples().take(10).toList
+    * res0: List[Boolean] = List(false, true, true, true, false, true, false, true, true, true)
+    * }}}
+    *
     * @group primitive
     */
   def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
@@ -288,6 +312,13 @@ object Gen {
 
   /**
     * An int generator in range.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.int(Range.linear(0, 10)).samples().take(10).toList
+    * res0: List[Int] = List(3, 8, 8, 2, 4, 7, 7, 10, 4, 0)
+    * }}}
     *
     * @group primitive
     */
@@ -338,6 +369,13 @@ object Gen {
     *
     * A generated string consists `charGen` values, and its size is in `sizeRange`.
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.string(Gen.char(Range.constant('a', 'z')), Range.constant(3, 5)).samples().take(10).toList
+    * res0: List[String] = List(lbd, nen, vev, ariiz, zapx, npt, omnjt, tsjnr, irm, twb)
+    * }}}
+    *
     * @group collection
     */
   def string(charGen: Gen[Char], sizeRange: Range[Int]): Gen[String] =
@@ -347,6 +385,13 @@ object Gen {
     * A list generator.
     *
     * A generated list consists `gen` values, and its size is in `sizeRange`.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.list(Gen.int(Range.linear(0, 10)), Range.constant(3, 5)).samples().take(4).toList
+    * res0: List[List[Int]] = List(List(8, 8, 2), List(7, 7, 10), List(0, 4, 10), List(7, 6, 1, 1, 0))
+    * }}}
     *
     * @group collection
     */
@@ -366,6 +411,13 @@ object Gen {
     * A set generator.
     *
     * A generated set consists `gen` values, and its size is in `sizeRange`.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.set(Gen.int(Range.linear(0, 10)), Range.constant(3, 5)).samples().take(4).toList
+    * res0: List[Set[Int]] = List(Set(0, 4, 10), Set(4, 10, 3, 6), Set(6, 2, 5), Set(10, 7, 4))
+    * }}}
     *
     * @group collection
     */
@@ -389,6 +441,13 @@ object Gen {
     * Keys are generated from `keyGen`, and values are generated from `valueGen`.
     * A generated map's size is in `sizeRange`.
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.map(Gen.int(Range.linear(0, 10)), Gen.boolean, Range.linear(2, 3)).samples().take(2).toList
+    * res0: List[Map[Int, Boolean]] = List(Map(7 -> true, 10 -> false, 4 -> true), Map(7 -> false, 6 -> true, 1 -> false))
+    * }}}
+    *
     * @group collection
     */
   def map[K, V](keyGen: Gen[K], valueGen: Gen[V], sizeRange: Range[Int]): Gen[Map[K, V]] =
@@ -408,10 +467,17 @@ object Gen {
     }
 
   /**
-    * An option [[Gen]].
+    * An option generator.
     *
     * It generates `None` and `Some(x)` according to `1:9` ratio.
     * `gen` is generator for `Some(x)` values.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.option(Gen.boolean).samples().take(5).toList
+    * res0: List[Option[Boolean]] = List(Some(true), Some(true), None, Some(false), Some(true))
+    * }}}
     *
     * @group collection
     */
@@ -419,10 +485,17 @@ object Gen {
     frequency(1 -> pure(None), 9 -> gen.map(Some(_)))
 
   /**
-    * An either [[Gen]].
+    * An either generator.
     *
     * It generates `Left(x)` and `Right(x)` according to `1:1` ratio.
     * `leftGen` is generator for `Left(x)` values, and `rightGen` is generator for `Right(x)` values.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.either(Gen.boolean, Gen.boolean).samples().take(4).toList
+    * res0: List[Either[Boolean, Boolean]] = List(Left(true), Right(true), Left(true), Left(true))
+    * }}}
     *
     * @group collection
     */
@@ -431,6 +504,13 @@ object Gen {
 
   /**
     * A two elements tuple generator.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.tuple2(Gen.int(Range.linear(0, 10)), Gen.boolean).samples().take(5).toList
+    * res9: List[(Int, Boolean)] = List((3,true), (8,true), (4,true), (7,true), (4,true))
+    * }}}
     *
     * @group collection
     */
@@ -467,12 +547,17 @@ object Gen {
     * @group function
     */
   private def fun[T, R](cogen: Cogen[T], gen: Gen[R]): Gen[Fun[T, R]] =
-    map2(partialFun(cogen, gen), gen)(Fun(_, _, false))
-      // Mark children as shurnk for better `toString`.
-      .mapTree { case Tree(x, xs) => Tree(x, xs.map(_.map(_.map(_.copy(isShrunk = true))))) }
+    map2(partialFun(cogen, gen), gen)(Fun(_, _))
 
   /**
     * A function generator.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.function1(Cogen.boolean, Gen.boolean).samples().take(2).toList
+    * res0: List[Function1[Boolean, Boolean]] = List({case true | false => true; case _ => true}, {case true => false; case false => true; case _ => true})
+    * }}}
     *
     * @group function
     */

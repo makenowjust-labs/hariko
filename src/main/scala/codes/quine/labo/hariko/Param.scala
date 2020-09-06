@@ -6,6 +6,17 @@ import scala.concurrent.duration.Duration
 
 import random.Random
 
+/**
+  * Param is a parameter of property execution.
+  *
+  * @param seed a seed of PRNG for testing
+  * @param minSuccessful what number of running a property
+  * @param maxDiscarded what number to accept discarded value
+  * @param minScale minimal scale value
+  * @param maxScale maximal scale value
+  * @param maxShrink what number of trying to shrink a counter example
+  * @param timeout a timeout duration
+  */
 final case class Param(
     seed: Int,
     minSuccessful: Int = 100,
@@ -15,5 +26,9 @@ final case class Param(
     maxShrink: Int = 10000,
     timeout: Duration = Duration(5, TimeUnit.SECONDS)
 ) {
+
+  /**
+    * Builds a PRNG from this seed.
+    */
   def toRandom: Random = Random(seed)
 }
