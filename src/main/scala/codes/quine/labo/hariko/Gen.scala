@@ -1,4 +1,4 @@
-package codes.quine.labo.gen
+package codes.quine.labo.hariko
 
 import data.Fun
 import data.Range
@@ -211,7 +211,7 @@ object Gen {
     * @group combinator
     */
   def replicate[T](n: Int, gen: Gen[T]): Gen[List[T]] = {
-    require(n >= 0, "gen.Gen.replicate: invalid replicate number")
+    require(n >= 0, "hariko.Gen.replicate: invalid replicate number")
     if (n == 0) Gen.pure(List.empty)
     else if (n == 1) gen.map(List(_))
     else if (n % 2 == 1) map2(gen, replicate(n - 1, gen))(_ +: _)
@@ -227,7 +227,7 @@ object Gen {
     * @group combinator
     */
   def setReplicate[T](n: Int, gen: Gen[T]): Gen[List[T]] = {
-    require(n >= 0, "gen.Gen.setReplicate: invalid replicate number")
+    require(n >= 0, "hariko.Gen.setReplicate: invalid replicate number")
     if (n == 0) Gen.pure(List.empty)
     else if (n == 1) gen.map(List(_))
     else if (n % 2 == 1)
@@ -247,8 +247,8 @@ object Gen {
     * @group combinator
     */
   def frequency[T](dist: (Int, Gen[T])*): Gen[T] = {
-    require(dist.nonEmpty, "gen.Gen.frequency: no distribution")
-    require(dist.forall(_._1 >= 1), "gen.Gen.frequency: invalid distribution")
+    require(dist.nonEmpty, "hariko.Gen.frequency: no distribution")
+    require(dist.forall(_._1 >= 1), "hariko.Gen.frequency: invalid distribution")
     val ps :+ total = dist.scanLeft(0)(_ + _._1)
     val pairs = ps.zip(dist.map(_._2))
     Gen { (rand0, param, scale) =>

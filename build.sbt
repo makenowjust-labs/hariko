@@ -1,7 +1,7 @@
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 ThisBuild / githubOwner := "MakeNowJust-Labo"
-ThisBuild / githubRepository := "gen"
+ThisBuild / githubRepository := "hariko"
 
 ThisBuild / scalaVersion := "2.13.3"
 ThisBuild / scalacOptions ++= Seq(
@@ -24,15 +24,15 @@ lazy val root = project
   .in(file("."))
   .settings(
     organization := "codes.quine.labo",
-    name := "gen",
+    name := "hariko",
     version := "0.1.0-SNAPSHOT",
     console / initialCommands := """
       |import scala.concurrent.ExecutionContext.Implicits.global
       |
-      |import codes.quine.labo.gen._
-      |import codes.quine.labo.gen.data._
-      |import codes.quine.labo.gen.random._
-      |import codes.quine.labo.gen.util._
+      |import codes.quine.labo.hariko._
+      |import codes.quine.labo.hariko.data._
+      |import codes.quine.labo.hariko.random._
+      |import codes.quine.labo.hariko.util._
       """.stripMargin,
     Compile / console / scalacOptions -= "-Wunused",
     // Scaladoc options:

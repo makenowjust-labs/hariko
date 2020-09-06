@@ -1,4 +1,4 @@
-package codes.quine.labo.gen.random
+package codes.quine.labo.hariko.random
 
 import minitest.SimpleTestSuite
 

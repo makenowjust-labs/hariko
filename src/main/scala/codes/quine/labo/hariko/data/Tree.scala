@@ -1,4 +1,4 @@
-package codes.quine.labo.gen.data
+package codes.quine.labo.hariko.data
 
 /**
   * Tree is [[https://en.wikipedia.org/wiki/Rose_tree rose tree]] implementation.

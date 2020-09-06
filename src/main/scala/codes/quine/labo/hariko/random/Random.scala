@@ -1,4 +1,4 @@
-package codes.quine.labo.gen.random
+package codes.quine.labo.hariko.random
 
 /** Random is [[SplitMix64]] wrapper. */
 final case class Random(splitmix: SplitMix64) {
@@ -21,7 +21,7 @@ final case class Random(splitmix: SplitMix64) {
     */
   def nextLong(bounds: (Long, Long)): (Random, Long) = {
     val (min, max) = bounds
-    require(min <= max, "gen.random.Random#nextLong: invalid bounds")
+    require(min <= max, "hariko.random.Random#nextLong: invalid bounds")
     if (min == max) (this, min)
     else if (min == Long.MinValue && max == Long.MaxValue) nextLong
     else {
@@ -51,7 +51,7 @@ final case class Random(splitmix: SplitMix64) {
     val (min, max) = bounds
     require(
       min <= max && !min.isNaN && min.isFinite && !max.isNaN && max.isFinite,
-      "gen.random.Random#nextDouble: invalid bounds"
+      "hariko.random.Random#nextDouble: invalid bounds"
     )
     if (min == max) (this, min)
     else {

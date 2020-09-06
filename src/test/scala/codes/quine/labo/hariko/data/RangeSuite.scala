@@ -1,4 +1,4 @@
-package codes.quine.labo.gen.data
+package codes.quine.labo.hariko.data
 
 import minitest.SimpleTestSuite
 

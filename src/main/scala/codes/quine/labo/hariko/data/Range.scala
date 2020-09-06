@@ -1,15 +1,15 @@
-package codes.quine.labo.gen.data
+package codes.quine.labo.hariko.data
 
 /** Range is scalable bounds. */
 final case class Range[T](base: T, run: Int => (T, T)) {
 
   /** Returns a bounds in scale. */
   def bounds(scale: Int)(implicit T: Ordering[T]): (T, T) = {
-    require(0 <= scale && scale <= 100, "gen.data.Random#bounds: invalid scale")
+    require(0 <= scale && scale <= 100, "hariko.data.Random#bounds: invalid scale")
     val (x, y) = run(scale)
     val min = T.min(x, y)
     val max = T.max(x, y)
-    assert(T.lteq(min, base) && T.lteq(base, max), "gen.data.Random#bounds: bounds must contain base")
+    assert(T.lteq(min, base) && T.lteq(base, max), "hariko.data.Random#bounds: bounds must contain base")
     (min, max)
   }
 
@@ -50,8 +50,8 @@ object Range {
 
   /** Returns a linear scaling range. */
   def linear(base: Long, min: Long, max: Long): Range[Long] = {
-    require(min <= max, "gen.data.Range.linear: invalid bounds")
-    require(min <= base && base <= max, "gen.data.Range.linear: invalid base")
+    require(min <= max, "hariko.data.Range.linear: invalid bounds")
+    require(min <= base && base <= max, "hariko.data.Range.linear: invalid base")
     if (base - min < 0 || max - base < 0) linearBigInt(BigInt(base), BigInt(min), BigInt(max)).map(_.toLong)
     else
       Range(
@@ -72,8 +72,8 @@ object Range {
 
   /** Returns a linear scaling range. */
   def linear(base: Double, min: Double, max: Double): Range[Double] = {
-    require(min <= max, "gen.data.Range.linear: invalid bounds")
-    require(min <= base && base <= max, "gen.data.Range.linear: invalid base")
+    require(min <= max, "hariko.data.Range.linear: invalid bounds")
+    require(min <= base && base <= max, "hariko.data.Range.linear: invalid base")
     Range(base, scale => (base - (base - min) * (scale / 100.0), base + (max - base) * (scale / 100.0)))
   }
 

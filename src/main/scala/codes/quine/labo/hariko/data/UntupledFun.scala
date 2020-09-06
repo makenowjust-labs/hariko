@@ -1,4 +1,4 @@
-package codes.quine.labo.gen.data
+package codes.quine.labo.hariko.data
 
 object UntupledFun {
   final class UntupledFun2[T1, T2, R](val fun: ((T1, T2)) => R) extends ((T1, T2) => R) {

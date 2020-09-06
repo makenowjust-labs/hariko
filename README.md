@@ -1,4 +1,6 @@
-# gen
+# hariko
+
+> Hariko: Property Based Testing for Functional Progamming
 
 ## License
 

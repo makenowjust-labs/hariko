@@ -1,6 +1,6 @@
 package codes.quine.labo
 
-package object gen {
+package object hariko {
   type Random = random.Random
   val Random = random.Random
 

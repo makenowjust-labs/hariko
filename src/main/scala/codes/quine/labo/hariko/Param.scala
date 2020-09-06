@@ -1,4 +1,4 @@
-package codes.quine.labo.gen
+package codes.quine.labo.hariko
 
 import java.util.concurrent.TimeUnit
 
