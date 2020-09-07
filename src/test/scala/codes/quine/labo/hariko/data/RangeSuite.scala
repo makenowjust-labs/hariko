@@ -1,8 +1,9 @@
-package codes.quine.labo.hariko.data
+package codes.quine.labo.hariko
+package data
 
 import minitest.SimpleTestSuite
 
-object RangeSuite extends SimpleTestSuite {
+object RangeSuite extends SimpleTestSuite with HarikoChecker {
   test("Range.constant") {
     assertEquals(Range.constant(0, -10, 10).base, 0)
     assertEquals(Range.constant(0, -10, 10).bounds(0), (-10, 10))
@@ -34,5 +35,26 @@ object RangeSuite extends SimpleTestSuite {
 
   test("Range#map") {
     assertEquals(Range.constant(0, -10, 10).map(_.toString).base, "0")
+  }
+
+  def equals[T](r1: Range[T], r2: Range[T])(implicit T: Ordering[T]): Boolean =
+    (0 to 100).forall(k => r1.bounds(k) == r2.bounds(k))
+
+  test("Range#map: Functor identity") {
+    check(Property.forAll(DataGen.range(Gen.int)) { range =>
+      equals(range.map(identity), range)
+    })
+  }
+
+  test("Range#map: Functor composition") {
+    val funGen = Gen.function1(Cogen.int, Gen.int)
+    check(
+      Property
+        .forAll(Gen.tuple3(DataGen.range(Gen.int), funGen, funGen)) {
+          case (range, f, g) =>
+            equals(range.map(f).map(g), range.map(f.andThen(g)))
+        }
+        .withParam(_.copy(minSuccessful = 10))
+    )
   }
 }

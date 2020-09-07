@@ -13,7 +13,6 @@ final case class Range[T](base: T, run: Int => (T, T)) {
     val (x, y) = run(scale)
     val min = T.min(x, y)
     val max = T.max(x, y)
-    assert(T.lteq(min, base) && T.lteq(base, max), "hariko.data.Random#bounds: bounds must contain base")
     (min, max)
   }
 

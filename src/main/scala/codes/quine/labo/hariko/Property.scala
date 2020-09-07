@@ -39,12 +39,19 @@ object Property {
   /**
     * Result is result of property execution.
     */
-  sealed abstract class Result extends Serializable with Product
+  sealed abstract class Result extends Serializable with Product {
+
+    /**
+      * Whether this result is `Pass` or not.
+      */
+    def isPass: Boolean = false
+  }
 
   /**
     * Passes the propety.
     */
   final case class Pass(seed: Long, test: Int) extends Result {
+    override def isPass: Boolean = true
     override def toString: String = s"pass (seed: 0x${seed.toHexString}, test: $test)"
   }
 
