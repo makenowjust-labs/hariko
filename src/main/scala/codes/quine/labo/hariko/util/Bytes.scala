@@ -11,19 +11,19 @@ object Bytes {
     * Calculates a short value from two bytes.
     */
   def compose(x: (Byte, Byte)): Short =
-    ((x._1 << 8) | x._2).toShort
+    (((x._1 & 0xFF) << 8) | (x._2 & 0xFF)).toShort
 
   /**
     * Calculates an int value from four bytes.
     */
   def compose(x: (Byte, Byte, Byte, Byte)): Int =
-    (x._1 << 24) | (x._2 << 16) | (x._3 << 8) | x._4
+    ((x._1 & 0xFF) << 24) | ((x._2 & 0xFF) << 16) | ((x._3 & 0xFF) << 8) | (x._4 & 0xFF)
 
   /**
     * Calculates a long value from two ints.
     */
   def compose(x: (Int, Int)): Long =
-    (x._1.toLong << 32) | x._2
+    ((x._1.toLong & 0xFFFFFFFFL) << 32) | (x._2.toLong & 0xFFFFFFFFL)
 
   /**
     * Calculates two bytes from a short value.
@@ -41,5 +41,5 @@ object Bytes {
     * Calculates two ints from a long value.
     */
   def decompose(x: Long): (Int, Int) =
-    ((x >>> 32).toInt, x.toInt)
+    ((x >>> 32).toInt, (x & 0xFFFFFFFF).toInt)
 }
