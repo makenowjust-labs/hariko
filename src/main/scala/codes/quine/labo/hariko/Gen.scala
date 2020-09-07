@@ -325,6 +325,13 @@ object Gen {
   def int(range: Range[Int]): Gen[Int] = long(range.map(_.toLong)).map(_.toInt)
 
   /**
+    * Alias of `Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))`.
+    *
+    * @group primitive
+    */
+  def int: Gen[Int] = Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))
+
+  /**
     * A long generator in range.
     *
     * @group primitive
@@ -365,6 +372,13 @@ object Gen {
     }
 
   /**
+    * Alias of `Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))`.
+    *
+    * @group primitive
+    */
+  def double: Gen[Double] = Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))
+
+  /**
     * A string generator.
     *
     * A generated string consists `charGen` values, and its size is in `sizeRange`.
@@ -395,7 +409,7 @@ object Gen {
     *
     * @group collection
     */
-  def list[T](gen: Gen[T], sizeRange: Range[Int]): Gen[List[T]] =
+  def list[T](gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 100)): Gen[List[T]] =
     Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
@@ -421,7 +435,7 @@ object Gen {
     *
     * @group collection
     */
-  def set[T](gen: Gen[T], sizeRange: Range[Int]): Gen[Set[T]] =
+  def set[T](gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Set[T]] =
     Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
@@ -450,7 +464,7 @@ object Gen {
     *
     * @group collection
     */
-  def map[K, V](keyGen: Gen[K], valueGen: Gen[V], sizeRange: Range[Int]): Gen[Map[K, V]] =
+  def map[K, V](keyGen: Gen[K], valueGen: Gen[V], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Map[K, V]] =
     Gen { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)

@@ -15,15 +15,15 @@ import random.Random
   * @param minScale minimal scale value
   * @param maxScale maximal scale value
   * @param maxShrink what number of trying to shrink a counter example
-  * @param timeout a timeout duration
+  * @param timeout a timeout duration for testing
   */
 final case class Param(
-    seed: Int,
+    seed: Long,
     minSuccessful: Int = 100,
     maxDiscarded: Int = 16,
     minScale: Int = 0,
     maxScale: Int = 100,
-    maxShrink: Int = 10000,
+    maxShrink: Int = 50000,
     timeout: Duration = Duration(5, TimeUnit.SECONDS)
 ) {
 
