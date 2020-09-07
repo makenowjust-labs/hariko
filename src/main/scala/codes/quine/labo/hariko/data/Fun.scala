@@ -20,8 +20,8 @@ final case class Fun[T, R](pfun: T :=> Option[R], fallback: R) extends (T => R) 
   /**
     * Shows this function content.
     *
-    * It is potentially infinite result, so we can restrict
-    * maximum argument-result table size by `maxTableSize`.
+    * Intermediate argument-result table is potentially infinite,
+    * so we can restrict maximum table size by `maxTableSize`.
     */
   def toString(maxTableSize: Int): String = {
     val table = pfun.table.collect { case (a, y) => (a, y.getOrElse(fallback)) }

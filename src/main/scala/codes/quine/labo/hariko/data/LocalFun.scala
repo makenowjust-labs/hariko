@@ -15,5 +15,5 @@ final class LocalFun[T, R](x: T, y: R) extends (T => R) {
     */
   def apply(x0: T): R = if (x0 == x) y else sys.error("hariko.data.LocalFun: undefined")
 
-  override def toString: String = s"{ case ${Show.any(x)} => ${Show.any(y)}; case _ => ??? }"
+  override def toString: String = s"{case ${Show.any(x)} => ${Show.any(y)}}"
 }
