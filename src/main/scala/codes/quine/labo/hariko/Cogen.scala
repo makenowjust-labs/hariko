@@ -1,6 +1,7 @@
 package codes.quine.labo.hariko
 
 import scala.annotation.tailrec
+import scala.collection.immutable.SortedSet
 
 import data.PartialFun._
 import random.Random
@@ -62,7 +63,7 @@ object Cogen {
     *
     * @group util
     */
-  def unlift[T](domain: Set[T])(variant: (T, Random) => Random): Cogen[T] =
+  def unlift[T: Ordering](domain: SortedSet[T])(variant: (T, Random) => Random): Cogen[T] =
     new Cogen[T] {
       def build[R](gen: Gen[R]): Gen[T :=> Option[R]] =
         Gen { (rand0, param, scale) =>
@@ -83,7 +84,7 @@ object Cogen {
     * @group primitive
     */
   def unit: Cogen[Unit] =
-    unlift(Set(()))((_, rand) => rand)
+    unlift(SortedSet(()))((_, rand) => rand)
 
   /**
     * A boolean cogen.
@@ -91,7 +92,7 @@ object Cogen {
     * @group primitive
     */
   def boolean: Cogen[Boolean] =
-    unlift(Set(true, false))((x, rand) => if (x) rand.right else rand.left)
+    unlift(SortedSet(true, false))((x, rand) => if (x) rand.right else rand.left)
 
   /**
     * A byte cogen.
@@ -102,7 +103,7 @@ object Cogen {
     @tailrec def variant(x: Byte, rand: Random): Random =
       if (x == 0) rand.left
       else variant(((x & 0xff) >>> 1).toByte, (if ((x & 1) == 0) rand.left else rand.right).right)
-    unlift(Set.from(-128 to 127).map(_.toByte))(variant)
+    unlift(SortedSet.from(-128 to 127).map(_.toByte))(variant)
   }
 
   /**

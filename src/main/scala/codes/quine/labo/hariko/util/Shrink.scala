@@ -1,6 +1,8 @@
 package codes.quine.labo.hariko
 package util
 
+import scala.collection.immutable.SortedSet
+
 import data.Tree
 import data.PartialFun._
 
@@ -55,12 +57,12 @@ object Shrink {
   /**
     * Shrink a partial function.
     */
-  def partialFun[T, R](pfun: T :=> Option[Tree[R]]): LazyList[T :=> Option[Tree[R]]] =
+  def partialFun[T: Ordering, R](pfun: T :=> Option[Tree[R]]): LazyList[T :=> Option[Tree[R]]] =
     pfun match {
       case Unlift(domain, f) =>
         Shrink
           .list(0, domain.toList)
-          .map(dom => if (dom.isEmpty) Empty[T, Option[Tree[R]]]() else Unlift(dom.toSet, f)) ++
+          .map(dom => if (dom.isEmpty) Empty[T, Option[Tree[R]]]() else Unlift(SortedSet.from(dom), f)) ++
           LazyList.from(domain).map(x => (x, f(x))).flatMap {
             case (x, Some(y)) => y.children.map(y => Unlift(domain, Map(x -> Some(y)).withDefault(f)))
             case _            => LazyList.empty

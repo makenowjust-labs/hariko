@@ -570,7 +570,7 @@ object Gen {
     *
     * {{{
     * scala> Gen.function1(Cogen.boolean, Gen.boolean).samples().take(2).toList
-    * res0: List[Function1[Boolean, Boolean]] = List({case true | false => true; case _ => true}, {case true => false; case false => true; case _ => true})
+    * res0: List[Function1[Boolean, Boolean]] = List({case false | true => true; case _ => true}, {case true => false; case false => true; case _ => true})
     * }}}
     *
     * @group function

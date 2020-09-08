@@ -2,6 +2,7 @@ package codes.quine.labo.hariko
 package data
 
 import scala.annotation.showAsInfix
+import scala.collection.immutable.SortedSet
 
 /**
   * PartialFun is lazy data structure represents a partial function.
@@ -55,7 +56,7 @@ object PartialFun {
   /**
     * A partial function lifted down from usual function restricted by the domain.
     */
-  final case class Unlift[T, R](domain: Set[T], f: T => R) extends (T :=> R) {
+  final case class Unlift[T, R](domain: SortedSet[T], f: T => R) extends (T :=> R) {
     def map[S](g: R => S): T :=> S = Unlift(domain, f.andThen(g))
 
     def table: LazyList[(T, R)] = LazyList.from(domain).map(x => (x, f(x)))
