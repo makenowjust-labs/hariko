@@ -4,6 +4,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import minitest.api.Asserts
 
+/**
+  * A mix-in for writing Hariko property testing in minitest.
+  */
 trait HarikoChecker {
   import Asserts._
 

@@ -79,8 +79,13 @@ object Show {
   private def charInternal(c: Char): String =
     c match {
       case '\b'             => "\\b"
+      case '\f'             => "\\f"
       case '\n'             => "\\n"
       case '\r'             => "\\r"
+      case '\t'             => "\\t"
+      case '\\'             => "\\\\"
+      case '\"'             => "\\\""
+      case '\''             => "\\'"
       case c if c.isControl => f"\\u$c%04x"
       case c                => c.toString
     }
