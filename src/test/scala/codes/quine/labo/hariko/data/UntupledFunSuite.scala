@@ -7,6 +7,10 @@ import minitest.SimpleTestSuite
 import UntupledFun._
 
 object UntupledFunSuite extends SimpleTestSuite {
+  test("UntupledFun") {
+    assertEquals(UntupledFun, UntupledFun)
+  }
+
   val tupledFun2: ((Boolean, Boolean)) => Boolean = new Function1[(Boolean, Boolean), Boolean] {
     def apply(x: (Boolean, Boolean)): Boolean = true
     override def toString: String = "tupledFun2"
