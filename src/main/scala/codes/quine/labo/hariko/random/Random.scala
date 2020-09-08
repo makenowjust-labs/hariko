@@ -6,11 +6,6 @@ package codes.quine.labo.hariko.random
 final case class Random(splitmix: SplitMix64) {
 
   /**
-    * Returns a next PRNG.
-    */
-  def next: Random = Random(splitmix.next)
-
-  /**
     * Generates a random long value.
     *
     * Long value range is `Long.MinValue <= x <= Long.MinValue`.
