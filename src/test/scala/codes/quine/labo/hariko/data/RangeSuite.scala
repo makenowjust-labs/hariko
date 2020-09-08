@@ -3,6 +3,8 @@ package data
 
 import minitest.SimpleTestSuite
 
+import DataOps._
+
 object RangeSuite extends SimpleTestSuite with HarikoChecker {
   test("Range.constant") {
     assertEquals(Range.constant(0, -10, 10).base, 0)
@@ -49,12 +51,9 @@ object RangeSuite extends SimpleTestSuite with HarikoChecker {
     assertEquals(Range.constant(0, -10, 10).map(_.toString).base, "0")
   }
 
-  def equals[T](r1: Range[T], r2: Range[T])(implicit T: Ordering[T]): Boolean =
-    (0 to 100).forall(k => r1.bounds(k) == r2.bounds(k))
-
   test("Range#map: Functor identity") {
     check(Property.forAll(DataGen.range(Gen.int)) { range =>
-      equals(range.map(identity), range)
+      range.map(identity) === range
     })
   }
 
@@ -64,7 +63,7 @@ object RangeSuite extends SimpleTestSuite with HarikoChecker {
       Property
         .forAll(Gen.tuple3(DataGen.range(Gen.int), funGen, funGen)) {
           case (range, f, g) =>
-            equals(range.map(f).map(g), range.map(f.andThen(g)))
+            range.map(f).map(g) === range.map(f.andThen(g))
         }
         .withParam(_.copy(minSuccessful = 10))
     )
