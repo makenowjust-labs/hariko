@@ -1,7 +1,5 @@
 package codes.quine.labo.hariko.data
 
-package codes.quine.labo.hariko.data
-
 import minitest.SimpleTestSuite
 
 import UntupledFun._

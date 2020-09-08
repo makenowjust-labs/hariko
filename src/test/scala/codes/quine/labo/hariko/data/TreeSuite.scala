@@ -3,6 +3,8 @@ package data
 
 import minitest.SimpleTestSuite
 
+import HarikoData._
+
 object TreeSuite extends SimpleTestSuite with HarikoChecker {
   test("Tree.pure") {
     assertEquals(Tree.pure(1).value, 1)
@@ -40,12 +42,11 @@ object TreeSuite extends SimpleTestSuite with HarikoChecker {
   }
 
   test("Tree#map: Functor identity") {
-    check(Property.forAll(DataGen.tree(Gen.boolean))(t => t.map(identity) == t))
+    check(Property.forAll((t: Tree[Boolean]) => t.map(identity) == t))
   }
 
   test("Tree#map: Functor composition") {
-    val funGen = Gen.function1(Cogen.boolean, Gen.boolean)
-    check(Property.forAll(Gen.tuple3(DataGen.tree(Gen.boolean), funGen, funGen)) {
+    check(Property.forAll[(Tree[Boolean], Boolean => Boolean, Boolean => Boolean)] {
       case (t, f, g) =>
         t.map(f).map(g) == t.map(f.andThen(g))
     })
@@ -53,21 +54,20 @@ object TreeSuite extends SimpleTestSuite with HarikoChecker {
 
   test("Tree.pure: Applicative left unit") {
     val unit = Tree.pure(())
-    check(Property.forAll(DataGen.tree(Gen.boolean)) { t =>
+    check(Property.forAll { t: Tree[Boolean] =>
       Tree.map2(unit, t)((_, x) => x) == t
     })
   }
 
   test("Tree.pure: Applicative right unit") {
     val unit = Tree.pure(())
-    check(Property.forAll(DataGen.tree(Gen.boolean)) { t =>
+    check(Property.forAll { t: Tree[Boolean] =>
       Tree.map2(t, unit)((x, _) => x) == t
     })
   }
 
   test("Tree.map2: Applicative associative") {
-    val treeGen = DataGen.tree(Gen.boolean)
-    check(Property.forAll(Gen.tuple3(treeGen, treeGen, treeGen)) {
+    check(Property.forAll[(Tree[Boolean], Tree[Boolean], Tree[Boolean])] {
       case (t1, t2, t3) =>
         val u1 = Tree.map2(Tree.map2(t1, t2)((_, _)), t3) { case ((x1, x2), x3) => (x1, x2, x3) }
         val u2 = Tree.map2(t1, Tree.map2(t2, t3)((_, _))) { case (x1, (x2, x3)) => (x1, x2, x3) }

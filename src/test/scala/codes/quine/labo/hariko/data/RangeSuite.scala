@@ -4,6 +4,7 @@ package data
 import minitest.SimpleTestSuite
 
 import DataOps._
+import HarikoData._
 
 object RangeSuite extends SimpleTestSuite with HarikoChecker {
   test("Range.constant") {
@@ -52,20 +53,16 @@ object RangeSuite extends SimpleTestSuite with HarikoChecker {
   }
 
   test("Range#map: Functor identity") {
-    check(Property.forAll(DataGen.range(Gen.int)) { range =>
+    check(Property.forAll { range: Range[Int] =>
       range.map(identity) === range
     })
   }
 
   test("Range#map: Functor composition") {
-    val funGen = Gen.function1(Cogen.int, Gen.int)
-    check(
-      Property
-        .forAll(Gen.tuple3(DataGen.range(Gen.int), funGen, funGen)) {
-          case (range, f, g) =>
-            range.map(f).map(g) === range.map(f.andThen(g))
-        }
-        .withParam(_.copy(minSuccessful = 10))
-    )
+    val p = Property.forAll[(Range[Int], Int => Int, Int => Int)] {
+      case (range, f, g) =>
+        range.map(f).map(g) === range.map(f.andThen(g))
+    }
+    check(p.withParam(_.copy(minSuccessful = 10)))
   }
 }

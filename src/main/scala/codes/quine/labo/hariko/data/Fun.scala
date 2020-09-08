@@ -26,9 +26,9 @@ final case class Fun[T, R](pfun: T :=> Option[R], fallback: R) extends (T => R) 
   def toString(maxTableSize: Int): String = {
     val table = pfun.table.collect { case (a, y) => (a, y.getOrElse(fallback)) }
     val hasRemains = table.lengthIs > maxTableSize
-    val map = table.take(maxTableSize).groupMap(_._2)(_._1)
+    val mapping = table.take(maxTableSize).groupMap(_._2)(_._1).toList.sortBy(_._2.head.##)
     val list =
-      map.toList.map {
+      mapping.map {
         case (y, xs) => s"case ${xs.map(Show.any).mkString(" | ")} => ${Show.any(y)}"
       } ++
         (if (hasRemains) List("... ") else List.empty) ++

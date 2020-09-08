@@ -1,5 +1,7 @@
 package codes.quine.labo.hariko
 
+import scala.annotation.implicitNotFound
+
 import data.Fun
 import data.Range
 import data.Tree
@@ -14,6 +16,7 @@ import util.Shrink
   * Techenically, this type is isomorphic to `ReaderT[(Param, Int), Nested[State[Random, *], Nested[Tree, Option, *], *], *]`.
   * Thus it is lawful as `Functor`, `Applicative` or `FunctorFilter`.
   */
+@implicitNotFound("no default generator of ${T}")
 trait Gen[T] {
 
   /**
@@ -68,7 +71,7 @@ trait Gen[T] {
     * Like `gen.map(f)`, but it maps over trees.
     */
   def mapTree[U](f: Tree[Option[T]] => Tree[Option[U]]): Gen[U] =
-    Gen { (rand0, param, scale) =>
+    Gen.from { (rand0, param, scale) =>
       val (rand1, t) = run(rand0, param, scale)
       (rand1, f(t))
     }
@@ -135,13 +138,18 @@ trait Gen[T] {
 object Gen {
 
   /**
+    * Summons generator instance of type `T`.
+    */
+  def apply[T](implicit gen: Gen[T]): Gen[T] = gen
+
+  /**
     * Creates a new generator from the function.
     *
     * See [[Gen#run]] for detailed explanation of function parameters and result.
     *
     * @group util
     */
-  def apply[T](f: (Random, Param, Int) => (Random, Tree[Option[T]])): Gen[T] =
+  def from[T](f: (Random, Param, Int) => (Random, Tree[Option[T]])): Gen[T] =
     new Gen[T] {
       def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]]) =
         f(rand, param, scale)
@@ -154,7 +162,7 @@ object Gen {
     */
   def delay[T](gen: => Gen[T]): Gen[T] = {
     lazy val lazyGen = gen
-    Gen((rand, param, scale) => lazyGen.run(rand, param, scale))
+    Gen.from((rand, param, scale) => lazyGen.run(rand, param, scale))
   }
 
   /**
@@ -162,14 +170,14 @@ object Gen {
     *
     * @group combinator
     */
-  def empty[T]: Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(None)))
+  def empty[T]: Gen[T] = Gen.from((rand, _, _) => (rand, Tree.pure(None)))
 
   /**
     * Creates a constant generator that generates `x` always.
     *
     * @group combinator
     */
-  def pure[T](x: T): Gen[T] = Gen((rand, _, _) => (rand, Tree.pure(Some(x))))
+  def pure[T](x: T): Gen[T] = Gen.from((rand, _, _) => (rand, Tree.pure(Some(x))))
 
   /**
     * Builds two generators product with the mapping.
@@ -191,7 +199,7 @@ object Gen {
     * @group combinator
     */
   def map2[T1, T2, U](gen1: Gen[T1], gen2: Gen[T2])(f: (T1, T2) => U): Gen[U] =
-    Gen { (rand0, param, scale) =>
+    Gen.from { (rand0, param, scale) =>
       val (rand1, t) = gen1.run(rand0, param, scale)
       val (rand2, u) = gen2.run(rand1, param, scale)
       (rand2, Tree.map2(t, u)((a, b) => for (x <- a; y <- b) yield f(x, y)))
@@ -268,7 +276,7 @@ object Gen {
     require(dist.forall(_._1 >= 1), "hariko.Gen.frequency: invalid distribution")
     val ps :+ total = dist.scanLeft(0)(_ + _._1)
     val pairs = ps.zip(dist.map(_._2))
-    Gen { (rand0, param, scale) =>
+    Gen.from { (rand0, param, scale) =>
       val (rand1, n) = rand0.nextLong((1, total))
       val (_, gen) = pairs.findLast(_._1 < n).get
       gen.run(rand1, param, scale)
@@ -280,7 +288,7 @@ object Gen {
     *
     * @group primitive
     */
-  def unit: Gen[Unit] = pure(())
+  implicit def unit: Gen[Unit] = pure(())
 
   /**
     * A boolean generator.
@@ -294,7 +302,7 @@ object Gen {
     *
     * @group primitive
     */
-  def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
+  implicit def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
 
   /**
     * A byte generator in range.
@@ -304,11 +312,25 @@ object Gen {
   def byte(range: Range[Byte]): Gen[Byte] = long(range.map(_.toLong)).map(_.toByte)
 
   /**
+    * Alias of `Gen.byte(Range.linear(0, Byte.MinValue, Byte.MaxValue))`.
+    *
+    * @group primitive
+    */
+  implicit def byte: Gen[Byte] = byte(Range.linear(0, Byte.MinValue, Byte.MaxValue))
+
+  /**
     * A short generator in range.
     *
     * @group primitive
     */
   def short(range: Range[Short]): Gen[Short] = long(range.map(_.toLong)).map(_.toShort)
+
+  /**
+    * Alias of `Gen.short(Range.linear(0, Short.MinValue, Short.MaxValue))`.
+    *
+    * @group primitive
+    */
+  implicit def short: Gen[Short] = short(Range.linear(0, Short.MinValue, Short.MaxValue))
 
   /**
     * An int generator in range.
@@ -329,7 +351,7 @@ object Gen {
     *
     * @group primitive
     */
-  def int: Gen[Int] = Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))
+  implicit def int: Gen[Int] = Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))
 
   /**
     * A long generator in range.
@@ -337,11 +359,18 @@ object Gen {
     * @group primitive
     */
   def long(range: Range[Long]): Gen[Long] =
-    Gen { (rand0, _, scale) =>
+    Gen.from { (rand0, _, scale) =>
       val (rand1, x) = rand0.nextLong(range.bounds(scale))
       val t = Tree.pure(x).expand(Shrink.long(range.base, _))
       (rand1, t.map(Some(_)))
     }
+
+  /**
+    * Alias of `Gen.long(Range.linear(0, Long.MinValue, Long.MaxValue))`.
+    *
+    * @group primitive
+    */
+  implicit def long: Gen[Long] = Gen.long(Range.linear(0, Long.MinValue, Long.MaxValue))
 
   /**
     * A char generator in range.
@@ -352,6 +381,13 @@ object Gen {
     long(range.map(_.toLong)).map(_.toChar)
 
   /**
+    * Alias of `Gen.char(Range.constant(' ', '~'))`.
+    *
+    * @group primitive
+    */
+  implicit def char: Gen[Char] = char(Range.constant(' ', '~'))
+
+  /**
     * A float generator in range.
     *
     * @group primitive
@@ -360,12 +396,19 @@ object Gen {
     double(range.map(_.toFloat)).map(_.toFloat)
 
   /**
+    * Alias of `Gen.float(Range.linear(0, Float.MinValue, Float.MaxValue))`.
+    *
+    * @group primitive
+    */
+  implicit def float: Gen[Float] = float(Range.linear(0, Float.MinValue, Float.MaxValue))
+
+  /**
     * A double generator in range.
     *
     * @group primitive
     */
   def double(range: Range[Double]): Gen[Double] =
-    Gen { (rand0, _, scale) =>
+    Gen.from { (rand0, _, scale) =>
       val (rand1, x) = rand0.nextDouble(range.bounds(scale))
       val t = Tree.pure(x).expand(Shrink.double(range.base, _))
       (rand1, t.map(Some(_)))
@@ -376,7 +419,7 @@ object Gen {
     *
     * @group primitive
     */
-  def double: Gen[Double] = Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))
+  implicit def double: Gen[Double] = Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))
 
   /**
     * A string generator.
@@ -392,7 +435,7 @@ object Gen {
     *
     * @group collection
     */
-  def string(charGen: Gen[Char], sizeRange: Range[Int]): Gen[String] =
+  implicit def string(implicit charGen: Gen[Char], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[String] =
     list(charGen, sizeRange).map(_.mkString)
 
   /**
@@ -409,8 +452,8 @@ object Gen {
     *
     * @group collection
     */
-  def list[T](gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 100)): Gen[List[T]] =
-    Gen { (rand0, param, scale) =>
+  implicit def list[T](implicit gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[List[T]] =
+    Gen.from { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, t0) = replicate(n.toInt, gen).run(rand1, param, scale)
@@ -435,8 +478,8 @@ object Gen {
     *
     * @group collection
     */
-  def set[T](gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Set[T]] =
-    Gen { (rand0, param, scale) =>
+  implicit def set[T](implicit gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Set[T]] =
+    Gen.from { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, t0) = setReplicate(n.toInt, gen).run(rand1, param, scale)
@@ -464,8 +507,12 @@ object Gen {
     *
     * @group collection
     */
-  def map[K, V](keyGen: Gen[K], valueGen: Gen[V], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Map[K, V]] =
-    Gen { (rand0, param, scale) =>
+  implicit def map[K, V](implicit
+      keyGen: Gen[K],
+      valueGen: Gen[V],
+      sizeRange: Range[Int] = Range.constant(0, 30)
+  ): Gen[Map[K, V]] =
+    Gen.from { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, keys) = setReplicate(n.toInt, keyGen).run(rand1, param, scale)
@@ -495,7 +542,7 @@ object Gen {
     *
     * @group collection
     */
-  def option[T](gen: Gen[T]): Gen[Option[T]] =
+  implicit def option[T](implicit gen: Gen[T]): Gen[Option[T]] =
     frequency(1 -> pure(None), 9 -> gen.map(Some(_)))
 
   /**
@@ -513,7 +560,7 @@ object Gen {
     *
     * @group collection
     */
-  def either[T, U](leftGen: Gen[T], rightGen: Gen[U]): Gen[Either[T, U]] =
+  implicit def either[T, U](implicit leftGen: Gen[T], rightGen: Gen[U]): Gen[Either[T, U]] =
     frequency(1 -> leftGen.map(Left(_)), 1 -> rightGen.map(Right(_)))
 
   /**
@@ -528,7 +575,7 @@ object Gen {
     *
     * @group collection
     */
-  def tuple2[T1, T2](gen1: Gen[T1], gen2: Gen[T2]): Gen[(T1, T2)] =
+  implicit def tuple2[T1, T2](implicit gen1: Gen[T1], gen2: Gen[T2]): Gen[(T1, T2)] =
     map2(gen1, gen2)((_, _))
 
   /**
@@ -536,7 +583,7 @@ object Gen {
     *
     * @group collection
     */
-  def tuple3[T1, T2, T3](gen1: Gen[T1], gen2: Gen[T2], gen3: Gen[T3]): Gen[(T1, T2, T3)] =
+  implicit def tuple3[T1, T2, T3](implicit gen1: Gen[T1], gen2: Gen[T2], gen3: Gen[T3]): Gen[(T1, T2, T3)] =
     map2(tuple2(gen1, gen2), gen3) { case ((x1, x2), x3) => (x1, x2, x3) }
 
   /**
@@ -544,7 +591,12 @@ object Gen {
     *
     * @group collection
     */
-  def tuple4[T1, T2, T3, T4](gen1: Gen[T1], gen2: Gen[T2], gen3: Gen[T3], gen4: Gen[T4]): Gen[(T1, T2, T3, T4)] =
+  implicit def tuple4[T1, T2, T3, T4](implicit
+      gen1: Gen[T1],
+      gen2: Gen[T2],
+      gen3: Gen[T3],
+      gen4: Gen[T4]
+  ): Gen[(T1, T2, T3, T4)] =
     map2(tuple3(gen1, gen2, gen3), gen4) { case ((x1, x2, x3), x4) => (x1, x2, x3, x4) }
 
   /**
@@ -575,7 +627,7 @@ object Gen {
     *
     * @group function
     */
-  def function1[T1, R](cogen1: Cogen[T1], gen: Gen[R]): Gen[T1 => R] =
+  implicit def function1[T1, R](implicit cogen1: Cogen[T1], gen: Gen[R]): Gen[T1 => R] =
     fun(cogen1, gen).map(_.asInstanceOf[T1 => R])
 
   /**
@@ -583,7 +635,7 @@ object Gen {
     *
     * @group function
     */
-  def function2[T1, T2, R](cogen1: Cogen[T1], cogen2: Cogen[T2], gen: Gen[R]): Gen[(T1, T2) => R] =
+  implicit def function2[T1, T2, R](implicit cogen1: Cogen[T1], cogen2: Cogen[T2], gen: Gen[R]): Gen[(T1, T2) => R] =
     fun(Cogen.tuple2(cogen1, cogen2), gen).map(new UntupledFun2(_))
 
   /**
@@ -591,7 +643,7 @@ object Gen {
     *
     * @group function
     */
-  def function3[T1, T2, T3, R](
+  implicit def function3[T1, T2, T3, R](implicit
       cogen1: Cogen[T1],
       cogen2: Cogen[T2],
       cogen3: Cogen[T3],
@@ -604,7 +656,7 @@ object Gen {
     *
     * @group function
     */
-  def function4[T1, T2, T3, T4, R](
+  implicit def function4[T1, T2, T3, T4, R](implicit
       cogen1: Cogen[T1],
       cogen2: Cogen[T2],
       cogen3: Cogen[T3],

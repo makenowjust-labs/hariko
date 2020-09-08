@@ -94,21 +94,33 @@ object Property {
   }
 
   /**
+    * Checks property `f` on default generator.
+    */
+  def check[T: Gen](f: T => Boolean): Result =
+    checkWith(Gen[T])(f)
+
+  /**
     * Checks property `f` on the generator.
     *
     * NOTE: it is utility method for testing in REPL.
     */
-  def check[T](gen: Gen[T], param: Param = Param(System.currentTimeMillis()))(f: T => Boolean): Result = {
+  def checkWith[T](gen: Gen[T], param: Param = Param(System.currentTimeMillis()))(f: T => Boolean): Result = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val p = forAll(gen)(f)
+    val p = forAllWith(gen)(f)
     p.run(param.toRandom, param)
   }
 
   /**
+    * Builds a property `f` on default generator.
+    */
+  def forAll[T: Gen](f: T => Boolean): Property =
+    forAllWith(Gen[T])(f)
+
+  /**
     * Builds a property `f` on the generator.
     */
-  def forAll[T](gen: Gen[T])(f: T => Boolean): Property =
+  def forAllWith[T](gen: Gen[T])(f: T => Boolean): Property =
     Property { (rand, param, ec0) =>
       implicit val ec = ec0
 
