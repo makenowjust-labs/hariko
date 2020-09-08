@@ -31,6 +31,18 @@ object RangeSuite extends SimpleTestSuite with HarikoChecker {
 
     assertEquals(Range.linear(0L, Long.MinValue, Long.MaxValue).bounds(100), (Long.MinValue, Long.MaxValue))
     assertEquals(Range.linear(Long.MinValue, Long.MaxValue).bounds(100), (Long.MinValue, Long.MaxValue))
+
+    assertEquals(Range.linear(0.0f, -1.0f, 1.0f).base, 0.0f)
+    assertEquals(Range.linear(0.0f, 1.0f).base, 0.0f)
+
+    assertEquals(Range.linear(0.0, -1.0, 1.0).base, 0.0)
+    assertEquals(Range.linear(0.0, -1.0, 1.0).bounds(0), (0.0, 0.0))
+    assertEquals(Range.linear(0.0, -1.0, 1.0).bounds(50), (-0.5, 0.5))
+    assertEquals(Range.linear(0.0, -1.0, 1.0).bounds(100), (-1.0, 1.0))
+    assertEquals(Range.linear(0.0, 1.0).base, 0.0)
+    assertEquals(Range.linear(0.0, 1.0).bounds(0), (0.0, 0.0))
+    assertEquals(Range.linear(0.0, 1.0).bounds(50), (0.0, 0.5))
+    assertEquals(Range.linear(0.0, 1.0).bounds(100), (0.0, 1.0))
   }
 
   test("Range#map") {
