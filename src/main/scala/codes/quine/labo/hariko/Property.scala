@@ -63,6 +63,7 @@ object Property {
       s"""counter example (seed: 0x${seed.toHexString}, test: $test, shrink: $shrink)
          |
          |value: ${Show.any(value)}
+         |
          |""".stripMargin
   }
 
@@ -83,6 +84,7 @@ object Property {
          |value: ${Show.any(value)}
          |
          |exception: ${exception.toString}
+         |
          |""".stripMargin
   }
 
@@ -95,16 +97,45 @@ object Property {
 
   /**
     * Checks property `f` on default generator.
+    *
+    * NOTE: it is utility method for testing in REPL.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Property.check((x: Boolean) => x || !x).isPass
+    * res0: Boolean = true
+    * }}}
     */
   def check[T: Gen](f: T => Boolean): Result =
     checkWith(Gen[T])(f)
+
+  /**
+    * Checks property `f` on default generator and the parameter.
+    *
+    * NOTE: it is utility method for testing in REPL.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Property.check(Param(42)) { xs: List[Int] => xs.headOption.forall(_ > 0) }
+    * res0: Property.Result =
+    * counter example (seed: 0x2a, test: 1, shrink: 5)
+    * <BLANKLINE>
+    * value: List(0)
+    * <BLANKLINE>
+    * <BLANKLINE>
+    * }}}
+    */
+  def check[T: Gen](param: Param)(f: T => Boolean): Result =
+    checkWith(Gen[T], param)(f)
 
   /**
     * Checks property `f` on the generator.
     *
     * NOTE: it is utility method for testing in REPL.
     */
-  def checkWith[T](gen: Gen[T], param: Param = Param(System.currentTimeMillis()))(f: T => Boolean): Result = {
+  def checkWith[T](gen: Gen[T], param: Param = Param())(f: T => Boolean): Result = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val p = forAllWith(gen)(f)
@@ -177,7 +208,9 @@ object Property {
   /**
     * Shrinks a counter example from tree.
     */
-  private def shrinkCounterExample[T](tree: Tree[Option[T]], param: Param)(f: T => Boolean): Option[(Int, T)] = {
+  private[hariko] def shrinkCounterExample[T](tree: Tree[Option[T]], param: Param)(
+      f: T => Boolean
+  ): Option[(Int, T)] = {
     @tailrec def loop(
         children: LazyList[Tree[Option[T]]],
         x: T,
@@ -201,7 +234,7 @@ object Property {
     loop(tree.children, tree.value.get)
   }
 
-  private val startTime: DynamicVariable[Long] = new DynamicVariable(0L)
+  private val startTime: DynamicVariable[Long] = new DynamicVariable(Long.MaxValue)
 
   private def checkTimeout(param: Param): Boolean =
     System.currentTimeMillis() - startTime.value >= param.timeout.toMillis

@@ -71,7 +71,7 @@ trait Gen[T] {
     * Like `gen.map(f)`, but it maps over trees.
     */
   def mapTree[U](f: Tree[Option[T]] => Tree[Option[U]]): Gen[U] =
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val (rand1, t) = run(rand0, param, scale)
       (rand1, f(t))
     }
@@ -139,6 +139,8 @@ object Gen {
 
   /**
     * Summons generator instance of type `T`.
+    *
+    * @group util
     */
   def apply[T](implicit gen: Gen[T]): Gen[T] = gen
 
@@ -149,7 +151,7 @@ object Gen {
     *
     * @group util
     */
-  def from[T](f: (Random, Param, Int) => (Random, Tree[Option[T]])): Gen[T] =
+  def of[T](f: (Random, Param, Int) => (Random, Tree[Option[T]])): Gen[T] =
     new Gen[T] {
       def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]]) =
         f(rand, param, scale)
@@ -162,7 +164,7 @@ object Gen {
     */
   def delay[T](gen: => Gen[T]): Gen[T] = {
     lazy val lazyGen = gen
-    Gen.from((rand, param, scale) => lazyGen.run(rand, param, scale))
+    Gen.of((rand, param, scale) => lazyGen.run(rand, param, scale))
   }
 
   /**
@@ -170,14 +172,14 @@ object Gen {
     *
     * @group combinator
     */
-  def empty[T]: Gen[T] = Gen.from((rand, _, _) => (rand, Tree.pure(None)))
+  def empty[T]: Gen[T] = Gen.of((rand, _, _) => (rand, Tree.pure(None)))
 
   /**
     * Creates a constant generator that generates `x` always.
     *
     * @group combinator
     */
-  def pure[T](x: T): Gen[T] = Gen.from((rand, _, _) => (rand, Tree.pure(Some(x))))
+  def pure[T](x: T): Gen[T] = Gen.of((rand, _, _) => (rand, Tree.pure(Some(x))))
 
   /**
     * Builds two generators product with the mapping.
@@ -199,7 +201,7 @@ object Gen {
     * @group combinator
     */
   def map2[T1, T2, U](gen1: Gen[T1], gen2: Gen[T2])(f: (T1, T2) => U): Gen[U] =
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val (rand1, t) = gen1.run(rand0, param, scale)
       val (rand2, u) = gen2.run(rand1, param, scale)
       (rand2, Tree.map2(t, u)((a, b) => for (x <- a; y <- b) yield f(x, y)))
@@ -276,7 +278,7 @@ object Gen {
     require(dist.forall(_._1 >= 1), "hariko.Gen.frequency: invalid distribution")
     val ps :+ total = dist.scanLeft(0)(_ + _._1)
     val pairs = ps.zip(dist.map(_._2))
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val (rand1, n) = rand0.nextLong((1, total))
       val (_, gen) = pairs.findLast(_._1 < n).get
       gen.run(rand1, param, scale)
@@ -359,7 +361,7 @@ object Gen {
     * @group primitive
     */
   def long(range: Range[Long]): Gen[Long] =
-    Gen.from { (rand0, _, scale) =>
+    Gen.of { (rand0, _, scale) =>
       val (rand1, x) = rand0.nextLong(range.bounds(scale))
       val t = Tree.pure(x).expand(Shrink.long(range.base, _))
       (rand1, t.map(Some(_)))
@@ -405,10 +407,17 @@ object Gen {
   /**
     * A double generator in range.
     *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.double(Range.linear(0.0, 10.0)).samples().take(3).toList
+    * res0: List[Double] = List(0.13829519495673195, 1.1294469083912502, 0.2290614650636398)
+    * }}}
+    *
     * @group primitive
     */
   def double(range: Range[Double]): Gen[Double] =
-    Gen.from { (rand0, _, scale) =>
+    Gen.of { (rand0, _, scale) =>
       val (rand1, x) = rand0.nextDouble(range.bounds(scale))
       val t = Tree.pure(x).expand(Shrink.double(range.base, _))
       (rand1, t.map(Some(_)))
@@ -453,7 +462,7 @@ object Gen {
     * @group collection
     */
   implicit def list[T](implicit gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[List[T]] =
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, t0) = replicate(n.toInt, gen).run(rand1, param, scale)
@@ -479,7 +488,7 @@ object Gen {
     * @group collection
     */
   implicit def set[T](implicit gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Set[T]] =
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, t0) = setReplicate(n.toInt, gen).run(rand1, param, scale)
@@ -512,7 +521,7 @@ object Gen {
       valueGen: Gen[V],
       sizeRange: Range[Int] = Range.constant(0, 30)
   ): Gen[Map[K, V]] =
-    Gen.from { (rand0, param, scale) =>
+    Gen.of { (rand0, param, scale) =>
       val bounds @ (min, _) = sizeRange.map(_.toLong).bounds(scale)
       val (rand1, n) = rand0.nextLong(bounds)
       val (rand2, keys) = setReplicate(n.toInt, keyGen).run(rand1, param, scale)

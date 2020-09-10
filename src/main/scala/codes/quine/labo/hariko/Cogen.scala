@@ -57,6 +57,8 @@ object Cogen {
 
   /**
     * Summons cogen instance of type `T`.
+    *
+    * @group util
     */
   def apply[T](implicit cogen: Cogen[T]): Cogen[T] = cogen
 
@@ -231,7 +233,7 @@ object Cogen {
     *
     * @group collection
     */
-  implicit def either[T, U](leftCogen: Cogen[T], rightCogen: Cogen[U]): Cogen[Either[T, U]] =
+  implicit def either[T, U](implicit leftCogen: Cogen[T], rightCogen: Cogen[U]): Cogen[Either[T, U]] =
     new Cogen[Either[T, U]] {
       def build[R](gen: Gen[R]): Gen[Either[T, U] :=> Option[R]] =
         Gen.delay {
@@ -313,7 +315,7 @@ object Cogen {
     }
 
   /**
-    * A two inputs cogen.
+    * A two inputs function cogen.
     *
     * @group function
     */
@@ -321,7 +323,7 @@ object Cogen {
     function1(Gen.tuple2(gen1, gen2), cogen).imap(new UntupledFun2(_).asInstanceOf[(T1, T2) => R])(_.tupled)
 
   /**
-    * A three inputs cogen.
+    * A three inputs function cogen.
     *
     * @group function
     */
@@ -334,7 +336,7 @@ object Cogen {
     function1(Gen.tuple3(gen1, gen2, gen3), cogen).imap(new UntupledFun3(_).asInstanceOf[(T1, T2, T3) => R])(_.tupled)
 
   /**
-    * A four inputs cogen.
+    * A four inputs function cogen.
     *
     * @group function
     */

@@ -18,7 +18,7 @@ import random.Random
   * @param timeout a timeout duration for testing
   */
 final case class Param(
-    seed: Long,
+    seed: Long = System.currentTimeMillis(),
     minSuccessful: Int = 100,
     maxDiscarded: Int = 16,
     minScale: Int = 0,

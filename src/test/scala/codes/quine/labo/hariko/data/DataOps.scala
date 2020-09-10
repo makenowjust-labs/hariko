@@ -8,7 +8,7 @@ object DataOps {
   /**
     * RangeOps provides extension methods of `Range` type.
     */
-  implicit class RangeOps[T](private val r1: Range[T]) extends AnyVal {
+  implicit final class RangeOps[T](private val r1: Range[T]) extends AnyVal {
 
     /**
       * Checks equality between `r1` and `r2`.
