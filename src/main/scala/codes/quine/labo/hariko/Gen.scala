@@ -22,23 +22,23 @@ trait Gen[T] {
   /**
     * Generate a random value along with parameters.
     *
-    * It take three parameters:
+    * It takes three parameters:
     *
     *   - The first is PRNG for this generation.
-    *   - The second is parameter of this generation.
-    *   - The third is scale of this generation. It bounds `[0, 100]`.
+    *   - The second is a parameter of this generation.
+    *   - The third is a scale of this generation. It bounds `[0, 100]`.
     *
     * It returns a pair:
     *
     *   - The first is PRNG after this generation.
-    *   - The second is shrinking tree. The root becomes generated value.
+    *   - The second is a shrinking tree. The root becomes generated value.
     */
   def run(rand: Random, param: Param, scale: Int): (Random, Tree[Option[T]])
 
   /**
     * Runs this generator endlessly along with parameters.
     *
-    * NOTE: this result becomes an infinite `LazyList`.
+    * NOTE: This result becomes an infinite `LazyList`.
     */
   def toLazyList(rand: Random, param: Param, scale: Int): LazyList[(Random, Tree[Option[T]])] =
     LazyList.iterate((rand, Tree.pure(Option.empty[T]))) { case (rand, _) => run(rand, param, scale) }.drop(1)
@@ -57,7 +57,7 @@ trait Gen[T] {
     * It tries to generate values at most `param.maxDiscarded` times.
     * If there is no valid value in these values, it returns `None` instead.
     *
-    * NOTE: this result tree is collapsed, so it makes shirinking poor when
+    * NOTE: This result tree is collapsed, so it makes a shirinking poor when
     * this method is used in generator implementation.
     */
   def unsafeHead(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
@@ -118,7 +118,7 @@ trait Gen[T] {
 }
 
 /**
-  * Utilities for generator.
+  * Utilities for generators.
   *
   * @groupname util Utility Functions
   * @groupprio util 0
@@ -147,7 +147,7 @@ object Gen {
   /**
     * Creates a new generator from the function.
     *
-    * See [[Gen#run]] for detailed explanation of function parameters and result.
+    * See [[Gen#run]] for detailed explanation of function parameters and its result.
     *
     * @group util
     */
@@ -158,7 +158,7 @@ object Gen {
     }
 
   /**
-    * Delays `gen` evaluation for recursive generator.
+    * Delays the `gen` evaluation for constructing recursive generator.
     *
     * @group util
     */
@@ -182,7 +182,7 @@ object Gen {
   def pure[T](x: T): Gen[T] = Gen.of((rand, _, _) => (rand, Tree.pure(Some(x))))
 
   /**
-    * Builds two generators product with the mapping.
+    * Builds a two generators product with the mapping.
     *
     * It is equivalent to `Gen.tuple2(gen1, gen2).map(f.tupled)`
     *
@@ -208,7 +208,7 @@ object Gen {
     }
 
   /**
-    * Builds three generators product with the mapping.
+    * Builds a three generators product with the mapping.
     *
     * @group combinator
     */
@@ -216,7 +216,7 @@ object Gen {
     map2(tuple2(gen1, gen2), gen3) { case ((x1, x2), x3) => f(x1, x2, x3) }
 
   /**
-    * Builds four generators product with the mapping.
+    * Builds a four generators product with the mapping.
     *
     * @group combinator
     */
@@ -307,35 +307,35 @@ object Gen {
   implicit def boolean: Gen[Boolean] = long(Range.constant(0, 1)).map(_ == 1)
 
   /**
-    * A byte generator in range.
+    * A byte generator in the range.
     *
     * @group primitive
     */
   def byte(range: Range[Byte]): Gen[Byte] = long(range.map(_.toLong)).map(_.toByte)
 
   /**
-    * Alias of `Gen.byte(Range.linear(0, Byte.MinValue, Byte.MaxValue))`.
+    * An alias of `Gen.byte(Range.linear(0, Byte.MinValue, Byte.MaxValue))`.
     *
     * @group primitive
     */
   implicit def byte: Gen[Byte] = byte(Range.linear(0, Byte.MinValue, Byte.MaxValue))
 
   /**
-    * A short generator in range.
+    * A short generator in the range.
     *
     * @group primitive
     */
   def short(range: Range[Short]): Gen[Short] = long(range.map(_.toLong)).map(_.toShort)
 
   /**
-    * Alias of `Gen.short(Range.linear(0, Short.MinValue, Short.MaxValue))`.
+    * An alias of `Gen.short(Range.linear(0, Short.MinValue, Short.MaxValue))`.
     *
     * @group primitive
     */
   implicit def short: Gen[Short] = short(Range.linear(0, Short.MinValue, Short.MaxValue))
 
   /**
-    * An int generator in range.
+    * An int generator in the range.
     *
     * Example:
     *
@@ -349,14 +349,14 @@ object Gen {
   def int(range: Range[Int]): Gen[Int] = long(range.map(_.toLong)).map(_.toInt)
 
   /**
-    * Alias of `Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))`.
+    * An alias of `Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))`.
     *
     * @group primitive
     */
   implicit def int: Gen[Int] = Gen.int(Range.linear(0, Int.MinValue, Int.MaxValue))
 
   /**
-    * A long generator in range.
+    * A long generator in the range.
     *
     * @group primitive
     */
@@ -368,14 +368,14 @@ object Gen {
     }
 
   /**
-    * Alias of `Gen.long(Range.linear(0, Long.MinValue, Long.MaxValue))`.
+    * An alias of `Gen.long(Range.linear(0, Long.MinValue, Long.MaxValue))`.
     *
     * @group primitive
     */
   implicit def long: Gen[Long] = Gen.long(Range.linear(0, Long.MinValue, Long.MaxValue))
 
   /**
-    * A char generator in range.
+    * A char generator in the range.
     *
     * @group primitive
     */
@@ -383,7 +383,7 @@ object Gen {
     long(range.map(_.toLong)).map(_.toChar)
 
   /**
-    * Alias of `Gen.char(Range.constant(' ', '~'))`.
+    * An alias of `Gen.char(Range.constant(' ', '~'))`.
     *
     * @group primitive
     */
@@ -398,7 +398,7 @@ object Gen {
     double(range.map(_.toFloat)).map(_.toFloat)
 
   /**
-    * Alias of `Gen.float(Range.linear(0, Float.MinValue, Float.MaxValue))`.
+    * An alias of `Gen.float(Range.linear(0, Float.MinValue, Float.MaxValue))`.
     *
     * @group primitive
     */
@@ -424,7 +424,7 @@ object Gen {
     }
 
   /**
-    * Alias of `Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))`.
+    * An alias of `Gen.double(Range.linear(0, Double.MinValue, Double.MaxValue))`.
     *
     * @group primitive
     */
@@ -504,7 +504,7 @@ object Gen {
   /**
     * A map generator.
     *
-    * Keys are generated from `keyGen`, and values are generated from `valueGen`.
+    * Keys are generated by `keyGen`, and values are generated by `valueGen`.
     * A generated map's size is in `sizeRange`.
     *
     * Example:
