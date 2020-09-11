@@ -58,7 +58,7 @@ trait Gen[T] {
     * If there is no valid value in these values, it returns `None` instead.
     *
     * NOTE: This result tree is collapsed, so it makes a shirinking poor when
-    * this method is used in generator implementation.
+    *       this method is used in generator implementation.
     */
   def unsafeHead(rand: Random, param: Param, scale: Int): Option[(Random, Tree[T])] =
     toLazyList(rand, param, scale)
@@ -138,7 +138,7 @@ trait Gen[T] {
 object Gen {
 
   /**
-    * Summons generator instance of type `T`.
+    * Summons the default generator instance of type `T`.
     *
     * @group util
     */
@@ -196,7 +196,7 @@ object Gen {
     * }}}
     *
     * NOTE: this and `tuple2` are associative. In short, it holds
-    * `Gen.map2(Gen.tuple2(gen1, gen2), gen3) { case ((x, y), z) => (x, y, z) } == Gen.map2(gen1, Gen.tuple2(gen2, gen3)) { case (x, (y, z)) => (x, y, z) }`.
+    *       `Gen.map2(Gen.tuple2(gen1, gen2), gen3) { case ((x, y), z) => (x, y, z) } == Gen.map2(gen1, Gen.tuple2(gen2, gen3)) { case (x, (y, z)) => (x, y, z) }`.
     *
     * @group combinator
     */

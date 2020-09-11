@@ -94,7 +94,7 @@ object Property {
   }
 
   /**
-    * Checks property `f` on default generator.
+    * Checks property `f` on the default generator.
     *
     * NOTE: it is utility method for testing in REPL.
     *
@@ -140,7 +140,7 @@ object Property {
   }
 
   /**
-    * Builds a property `f` on default generator.
+    * Builds a property `f` on the default generator.
     */
   def forAll[T: Gen](f: T => Boolean): Property =
     forAllWith(Gen[T])(f)

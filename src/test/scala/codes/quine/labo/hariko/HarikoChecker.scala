@@ -57,7 +57,7 @@ trait HarikoChecker {
   }
 
   /**
-    * Checks coverage of generated values for default generator.
+    * Checks coverage of generated values for the default generator.
     */
   def checkCoverage[T: Gen](covers: ((Int, String), (T => Boolean))*): Unit =
     checkCoverageWith(Gen[T])(covers: _*)
