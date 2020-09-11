@@ -63,7 +63,6 @@ object Property {
       s"""counter example (seed: 0x${seed.toHexString}, test: $test, shrink: $shrink)
          |
          |value: ${Show.any(value)}
-         |
          |""".stripMargin
   }
 
@@ -84,7 +83,6 @@ object Property {
          |value: ${Show.any(value)}
          |
          |exception: ${exception.toString}
-         |
          |""".stripMargin
   }
 
@@ -92,7 +90,7 @@ object Property {
     * Times out property execution.
     */
   final case class Timeout(seed: Long, duration: Duration) extends Result {
-    override def toString: String = s"timeout (seed 0x${seed.toHexString}, duration: $duration)"
+    override def toString: String = s"timeout (seed: 0x${seed.toHexString}, duration: $duration)"
   }
 
   /**
@@ -123,7 +121,6 @@ object Property {
     * counter example (seed: 0x2a, test: 1, shrink: 5)
     * <BLANKLINE>
     * value: List(0)
-    * <BLANKLINE>
     * <BLANKLINE>
     * }}}
     */
