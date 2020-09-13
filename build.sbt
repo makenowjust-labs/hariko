@@ -29,7 +29,7 @@ def moduleSettings(moduleName: String) =
   Seq(
     organization := "codes.quine.labo",
     name := s"hariko-$moduleName",
-    version := "0.1.1-SNAPSHOT",
+    version := "0.1.0",
     Compile / console / scalacOptions -= "-Wunused",
     // Scaladoc options:
     Compile / doc / scalacOptions ++= Seq(
