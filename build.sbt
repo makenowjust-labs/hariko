@@ -22,18 +22,13 @@ ThisBuild / scalafixDependencies += "com.github.vovapolu" %% "scaluzzi" % "0.1.1
 
 lazy val root = project
   .in(file("."))
-  .settings(
+  .aggregate(core, minitest)
+
+def moduleSettings(moduleName: String) =
+  Seq(
     organization := "codes.quine.labo",
-    name := "hariko",
+    name := s"hariko-$moduleName",
     version := "0.1.0-SNAPSHOT",
-    console / initialCommands := """
-      |import scala.concurrent.ExecutionContext.Implicits.global
-      |
-      |import codes.quine.labo.hariko._
-      |import codes.quine.labo.hariko.data._
-      |import codes.quine.labo.hariko.random._
-      |import codes.quine.labo.hariko.util._
-      """.stripMargin,
     Compile / console / scalacOptions -= "-Wunused",
     // Scaladoc options:
     Compile / doc / scalacOptions ++= Seq(
@@ -55,3 +50,27 @@ lazy val root = project
     ),
     scalacOptions += "-P:silencer:globalFilters=toVoid is never used"
   )
+
+
+lazy val core = project
+  .in(file("modules/hariko-core"))
+  .settings(
+    moduleSettings("core"),
+    console / initialCommands := """
+      |import scala.concurrent.ExecutionContext.Implicits.global
+      |
+      |import codes.quine.labo.hariko._
+      |import codes.quine.labo.hariko.data._
+      |import codes.quine.labo.hariko.random._
+      |import codes.quine.labo.hariko.util._
+      """.stripMargin,
+  )
+
+lazy val minitest = project
+  .in(file("modules/hariko-minitest"))
+  .settings(
+    moduleSettings("minitest"),
+    // Dependencies:
+    libraryDependencies += "io.monix" %% "minitest" % "2.8.2",
+  )
+  .dependsOn(core)
