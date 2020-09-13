@@ -22,6 +22,7 @@ ThisBuild / scalafixDependencies += "com.github.vovapolu" %% "scaluzzi" % "0.1.1
 
 lazy val root = project
   .in(file("."))
+  .settings(publish / skip := true)
   .aggregate(core, minitest)
 
 def moduleSettings(moduleName: String) =
@@ -70,6 +71,6 @@ lazy val minitest = project
   .settings(
     moduleSettings("minitest"),
     // Dependencies:
-    libraryDependencies += "io.monix" %% "minitest" % "2.8.2"
+    libraryDependencies += "io.monix" %% "minitest" % "2.8.2" % Provided
   )
   .dependsOn(core)
