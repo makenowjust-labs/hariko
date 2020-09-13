@@ -116,7 +116,7 @@ object Property {
     * Example:
     *
     * {{{
-    * scala> Property.check(Param(42)) { xs: List[Int] => xs.headOption.forall(_ > 0) }
+    * scala> Property.checkWith(Param(42)) { xs: List[Int] => xs.headOption.forall(_ > 0) }
     * res0: Property.Result =
     * counter example (seed: 0x2a, test: 1, shrink: 5)
     * <BLANKLINE>
@@ -124,7 +124,7 @@ object Property {
     * <BLANKLINE>
     * }}}
     */
-  def check[T: Gen](param: Param)(f: T => Boolean): Result =
+  def checkWith[T: Gen](param: Param)(f: T => Boolean): Result =
     checkWith(Gen[T], param)(f)
 
   /**
