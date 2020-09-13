@@ -51,7 +51,6 @@ def moduleSettings(moduleName: String) =
     scalacOptions += "-P:silencer:globalFilters=toVoid is never used"
   )
 
-
 lazy val core = project
   .in(file("modules/hariko-core"))
   .settings(
@@ -63,7 +62,7 @@ lazy val core = project
       |import codes.quine.labo.hariko.data._
       |import codes.quine.labo.hariko.random._
       |import codes.quine.labo.hariko.util._
-      """.stripMargin,
+      """.stripMargin
   )
 
 lazy val minitest = project
@@ -71,6 +70,6 @@ lazy val minitest = project
   .settings(
     moduleSettings("minitest"),
     // Dependencies:
-    libraryDependencies += "io.monix" %% "minitest" % "2.8.2",
+    libraryDependencies += "io.monix" %% "minitest" % "2.8.2"
   )
   .dependsOn(core)
