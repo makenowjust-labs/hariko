@@ -76,9 +76,8 @@ object PartialFun {
         (x2, y) <- pfun2.table
       } yield ((x1, x2), y)
 
-    def lift: ((T1, T2)) => Option[R] = {
-      case (x1, x2) =>
-        pfun.map(_.lift(x2)).lift(x1).flatten
+    def lift: ((T1, T2)) => Option[R] = { case (x1, x2) =>
+      pfun.map(_.lift(x2)).lift(x1).flatten
     }
   }
 

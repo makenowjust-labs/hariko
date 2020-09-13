@@ -28,8 +28,8 @@ final case class Fun[T, R](pfun: T :=> Option[R], fallback: R) extends (T => R) 
     val hasRemains = table.lengthIs > maxTableSize
     val mapping = table.take(maxTableSize).groupMap(_._2)(_._1).toList.sortBy(_._2.head.##)
     val list =
-      mapping.map {
-        case (y, xs) => s"case ${xs.map(Show.any).mkString(" | ")} => ${Show.any(y)}"
+      mapping.map { case (y, xs) =>
+        s"case ${xs.map(Show.any).mkString(" | ")} => ${Show.any(y)}"
       } ++
         (if (hasRemains) List("... ") else List.empty) ++
         List(s"case _ => ${Show.any(fallback)}")

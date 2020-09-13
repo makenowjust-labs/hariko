@@ -87,8 +87,8 @@ object GenSuite extends SimpleTestSuite with HarikoChecker {
 
   test("Gen.map4") {
     val gen1 =
-      Gen.map2(Gen.tuple2(Gen.int, Gen.int), Gen.tuple2(Gen.int, Gen.int)) {
-        case ((x1, x2), (x3, x4)) => (x1, x2, x3, x4)
+      Gen.map2(Gen.tuple2(Gen.int, Gen.int), Gen.tuple2(Gen.int, Gen.int)) { case ((x1, x2), (x3, x4)) =>
+        (x1, x2, x3, x4)
       }
     val gen2 =
       Gen.map4(Gen.int, Gen.int, Gen.int, Gen.int)((_, _, _, _))

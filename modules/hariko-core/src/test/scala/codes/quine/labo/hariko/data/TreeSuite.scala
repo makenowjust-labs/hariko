@@ -46,9 +46,8 @@ object TreeSuite extends SimpleTestSuite with HarikoChecker {
   }
 
   test("Tree#map: Functor composition") {
-    check(Property.forAll[(Tree[Boolean], Boolean => Boolean, Boolean => Boolean)] {
-      case (t, f, g) =>
-        t.map(f).map(g) == t.map(f.andThen(g))
+    check(Property.forAll[(Tree[Boolean], Boolean => Boolean, Boolean => Boolean)] { case (t, f, g) =>
+      t.map(f).map(g) == t.map(f.andThen(g))
     })
   }
 
@@ -67,11 +66,10 @@ object TreeSuite extends SimpleTestSuite with HarikoChecker {
   }
 
   test("Tree.map2: Applicative associative") {
-    check(Property.forAll[(Tree[Boolean], Tree[Boolean], Tree[Boolean])] {
-      case (t1, t2, t3) =>
-        val u1 = Tree.map2(Tree.map2(t1, t2)((_, _)), t3) { case ((x1, x2), x3) => (x1, x2, x3) }
-        val u2 = Tree.map2(t1, Tree.map2(t2, t3)((_, _))) { case (x1, (x2, x3)) => (x1, x2, x3) }
-        u1 == u2
+    check(Property.forAll[(Tree[Boolean], Tree[Boolean], Tree[Boolean])] { case (t1, t2, t3) =>
+      val u1 = Tree.map2(Tree.map2(t1, t2)((_, _)), t3) { case ((x1, x2), x3) => (x1, x2, x3) }
+      val u2 = Tree.map2(t1, Tree.map2(t2, t3)((_, _))) { case (x1, (x2, x3)) => (x1, x2, x3) }
+      u1 == u2
     })
   }
 }

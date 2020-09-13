@@ -59,9 +59,8 @@ object RangeSuite extends SimpleTestSuite with HarikoChecker {
   }
 
   test("Range#map: Functor composition") {
-    val p = Property.forAll[(Range[Int], Int => Int, Int => Int)] {
-      case (range, f, g) =>
-        range.map(f).map(g) === range.map(f.andThen(g))
+    val p = Property.forAll[(Range[Int], Int => Int, Int => Int)] { case (range, f, g) =>
+      range.map(f).map(g) === range.map(f.andThen(g))
     }
     check(p.withParam(_.copy(minSuccessful = 10)))
   }

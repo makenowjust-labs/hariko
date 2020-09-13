@@ -278,8 +278,8 @@ object Cogen {
       cogen2: Cogen[T2],
       cogen3: Cogen[T3]
   ): Cogen[(T1, T2, T3)] =
-    tuple2(tuple2(cogen1, cogen2), cogen3).imap { case ((x1, x2), x3) => (x1, x2, x3) } {
-      case (x1, x2, x3) => ((x1, x2), x3)
+    tuple2(tuple2(cogen1, cogen2), cogen3).imap { case ((x1, x2), x3) => (x1, x2, x3) } { case (x1, x2, x3) =>
+      ((x1, x2), x3)
     }
 
   /**
