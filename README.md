@@ -28,6 +28,8 @@ Highlighted Features:
   Hariko supports generating a higher-order function accepts functions.
   It helps to write complex law checking.
 
+You can view the academic background at the [minicheck](https://github.com/MakeNowJust-Labo/minicheck) project.
+
 ## License
 
 MIT License.
