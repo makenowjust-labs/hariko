@@ -88,6 +88,56 @@ object Cogen {
     }
 
   /**
+    * Creates a delayed cogen from the cogen creator function.
+    *
+    * @group util
+    */
+  def delay[T](f: Cogen[T] => Cogen[T]): Cogen[T] = new Cogen[T] { cogen0 =>
+    lazy val cogen = f(cogen0)
+
+    def build[R](gen: Gen[R]): Gen[T :=> Option[R]] =
+      Gen { (rand0, param, scale) =>
+        val (rand1, rand2) = rand0.split
+        val pfun: T :=> Option[R] = Delay(() => cogen.build(gen).run(rand2, param, scale)._2)
+        val t = Tree.pure(pfun).expand {
+          case Delay(dt) =>
+            LazyList(Empty[T, Option[R]]()) ++ LazyList(dt).flatMap(_().children.map {
+              case Tree(Some(Empty()), _) => Empty()
+              case t                      => Delay(() => t)
+            })
+          case _ => Seq.empty
+        }
+        (rand1, t.map(Some(_)))
+      }
+  }
+
+  /**
+    * An empty cogen.
+    *
+    * It is useful for generating a constant function.
+    *
+    * @group util
+    */
+  def empty[T]: Cogen[T] = new Cogen[T] {
+    def build[R](gen: Gen[R]): Gen[T :=> Option[R]] = Gen.pure(Empty())
+  }
+
+  /**
+    * A product identity cogen.
+    *
+    * NOTE: It is not useful in many situations. Use `unit` instead.
+    *
+    * The name is derived from Haskell's Divisible method.
+    * See [[https://hackage.haskell.org/package/contravariant-1.5.2/docs/Data-Functor-Contravariant-Divisible.html]].
+    *
+    * @group util
+    */
+  def conquer: Cogen[Unit] = new Cogen[Unit] {
+    def build[R](gen: Gen[R]): Gen[Unit :=> Option[R]] =
+      gen.map(x => Conquer(Some(x)))
+  }
+
+  /**
     * A unit cogen.
     *
     * @group primitive
@@ -178,10 +228,7 @@ object Cogen {
     * @group collection
     */
   implicit def list[T](implicit cogen: Cogen[T]): Cogen[List[T]] =
-    new Cogen[List[T]] { list =>
-      val instance = either(unit, tuple2(cogen, list))
-        .imap(backward)(forward)
-
+    delay { list =>
       def forward(x: List[T]): Either[Unit, (T, List[T])] =
         x match {
           case Nil     => Left(())
@@ -194,8 +241,8 @@ object Cogen {
           case Right((x, xs)) => x :: xs
         }
 
-      def build[R](gen: Gen[R]): Gen[List[T] :=> Option[R]] =
-        instance.build(gen)
+      either(unit, tuple2(cogen, list))
+        .imap(backward)(forward)
     }
 
   /**
