@@ -54,6 +54,17 @@ object PartialFun {
   }
 
   /**
+    * A partial function from unit.
+    */
+  final case class Conquer[R](value: R) extends (Unit :=> R) {
+    def map[S](f: R => S): Unit :=> S = Conquer(f(value))
+
+    def table: LazyList[(Unit, R)] = LazyList(((), value))
+
+    def lift: Unit => Option[R] = _ => Some(value)
+  }
+
+  /**
     * A partial function lifted down from usual function restricted by the domain.
     */
   final case class Unlift[T, R](domain: SortedSet[T], f: T => R) extends (T :=> R) {
@@ -105,5 +116,20 @@ object PartialFun {
     def table: LazyList[(T, R)] = pfun.table.map { case (y, z) => (backward(y), z) }
 
     def lift: T => Option[R] = x => pfun.lift(forward(x))
+  }
+
+  /**
+    * A delayed partial function for recursive structure.
+    */
+  final case class Delay[T, R](delayedTree: () => Tree[Option[T :=> R]]) extends (T :=> R) {
+    def map[S](f: R => S): T :=> S = Delay(() => delayedTree().map(_.map(_.map(f))))
+
+    def table: LazyList[(T, R)] =
+      LazyList(delayedTree).flatMap(_().value match {
+        case Some(pfun) => pfun.table
+        case None       => Seq.empty
+      })
+
+    def lift: T => Option[R] = x => delayedTree().value.flatMap(_.lift(x))
   }
 }

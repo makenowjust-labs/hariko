@@ -7,6 +7,34 @@ object CogenSuite extends SimpleTestSuite with HarikoChecker {
     assert(Cogen[Unit].isInstanceOf[Cogen[Unit]])
   }
 
+  test("Cogen.empty") {
+    check(Property.forAllWith(Gen.tuple3(Gen.function1(Cogen.empty[Int], Gen.int), Gen.int, Gen.int)) {
+      case (f, x, y) => f(x) == f(y)
+    })
+  }
+
+  test("Cogen.conquer") {
+    val fs1 = Gen.function1(Cogen.boolean, Gen.int).samples(paramForCoverage)
+    val fs2 = Gen
+      .function1(Cogen.tuple2(Cogen.conquer, Cogen.boolean), Gen.int)
+      .map(f => (x: Boolean) => f(((), x)))
+      .samples(paramForCoverage)
+    val fs3 = Gen
+      .function1(Cogen.tuple2(Cogen.boolean, Cogen.conquer), Gen.int)
+      .map(f => (x: Boolean) => f((x, ())))
+      .samples(paramForCoverage)
+    assert {
+      fs1
+        .zip(fs2)
+        .zip(fs3)
+        .map { case ((f1, f2), f3) => (f1, f2, f3) }
+        .take(100)
+        .forall { case (f1, f2, f3) =>
+          Seq(true, false).forall(x => f1(x) == f2(x) && f2(x) == f3(x))
+        }
+    }
+  }
+
   test("Cogen.unit") {
     checkCoverage[Unit => Boolean](
       (1, "true") -> (f => f(())),
