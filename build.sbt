@@ -63,7 +63,18 @@ lazy val core = project
       |import codes.quine.labo.hariko.data._
       |import codes.quine.labo.hariko.random._
       |import codes.quine.labo.hariko.util._
-      """.stripMargin
+      """.stripMargin,
+    // To avoid circular dependency, it copies `HarikoChecker.scala` from `hariko-minitest` before testing.
+    Test / sourceGenerators += Def.task {
+      val base =
+        baseDirectory.value / "../hariko-minitest/src/main/scala/codes/quine/labo/hariko/minitest/HarikoChecker.scala"
+      val gen = (Test / sourceManaged).value / "codes/quine/labo/hariko/HarikoChecker.scala"
+      if (IO.getModifiedTimeOrZero(gen) < IO.getModifiedTimeOrZero(base)) {
+        IO.write(gen, IO.read(base).replace("package minitest\n", ""))
+        IO.setModifiedTimeOrFalse(gen, IO.getModifiedTimeOrZero(base))
+      }
+      Seq(gen)
+    }.taskValue
   )
 
 lazy val minitest = project
