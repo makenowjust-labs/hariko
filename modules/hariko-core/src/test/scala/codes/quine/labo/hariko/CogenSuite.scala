@@ -134,6 +134,13 @@ object CogenSuite extends SimpleTestSuite with HarikoChecker {
     )
   }
 
+  test("Cogen.vector") {
+    checkCoverage[Vector[Int] => Boolean](
+      (1, "f(Vector(1, 2, 3)) != f(Vector(4, 5, 6))") -> (f => f(Vector(1, 2, 3)) != f(Vector(4, 5, 6))),
+      (1, "f(Vector(3, 2, 1)) != f(Vector(6, 5, 4))") -> (f => f(Vector(3, 2, 1)) != f(Vector(6, 5, 4)))
+    )
+  }
+
   test("Cogen.option") {
     checkCoverage[Option[Int] => Boolean](
       (1, "f(None) != f(Some(1))") -> (f => f(None) != f(Some(1))),
