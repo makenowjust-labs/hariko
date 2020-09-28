@@ -268,6 +268,14 @@ object Cogen {
     list(tuple2(keyCogen, valueCogen)).imap(_.toMap)(_.toList.sortBy(_._1.##))
 
   /**
+    * A vector cogen.
+    *
+    * @group collection
+    */
+  implicit def vector[T](implicit cogen: Cogen[T]): Cogen[Vector[T]] =
+    list(cogen).imap(_.toVector)(_.toList)
+
+  /**
     * An option cogen.
     *
     * @group collection

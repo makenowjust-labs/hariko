@@ -537,6 +537,23 @@ object Gen {
     }
 
   /**
+    * A vector generator.
+    *
+    * A generated vector consists `gen` values, and its size is in `sizeRange`.
+    *
+    * Example:
+    *
+    * {{{
+    * scala> Gen.vector(Gen.int(Range.linear(0, -10, 10)), Range.constant(1, 5)).samples().take(4).toList
+    * res0: List[Vector[Int]] = List(Vector(-1, -1, -7), Vector(-8), Vector(-7), Vector(-8, -7, 10, 7))
+    * }}}
+    *
+    * @group collection
+    */
+  implicit def vector[T](implicit gen: Gen[T], sizeRange: Range[Int] = Range.constant(0, 30)): Gen[Vector[T]] =
+    list(gen, sizeRange).map(_.toVector)
+
+  /**
     * An option generator.
     *
     * It generates `None` and `Some(x)` according to `1:9` ratio.

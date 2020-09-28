@@ -170,6 +170,10 @@ object GenSuite extends SimpleTestSuite with HarikoChecker {
     check(Property.forAll((x: Map[Int, Boolean]) => x.size <= 30))
   }
 
+  test("Gen.vector") {
+    check(Property.forAll((xs: Vector[Boolean]) => xs.size <= 30))
+  }
+
   test("Gen.option") {
     checkCoverage[Option[Boolean]](
       (1, "None") -> (_.isEmpty),
