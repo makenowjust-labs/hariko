@@ -1,12 +1,10 @@
 package codes.quine.labo.hariko.data
 
-/**
-  * Range is scalable bounds.
+/** Range is scalable bounds.
   */
 final case class Range[T](base: T, run: Int => (T, T)) {
 
-  /**
-    * Returns a bounds in scale.
+  /** Returns a bounds in scale.
     */
   def bounds(scale: Int)(implicit T: Ordering[T]): (T, T) = {
     require(0 <= scale && scale <= 100, "hariko.data.Random#bounds: invalid scale")
@@ -16,8 +14,7 @@ final case class Range[T](base: T, run: Int => (T, T)) {
     (min, max)
   }
 
-  /**
-    * Returns a new range which value is converted by `f`.
+  /** Returns a new range which value is converted by `f`.
     */
   def map[U](f: T => U): Range[U] =
     Range(f(base), scale => run(scale) match { case (x, y) => (f(x), f(y)) })
@@ -25,54 +22,44 @@ final case class Range[T](base: T, run: Int => (T, T)) {
 
 object Range {
 
-  /**
-    * Returns a constant range.
+  /** Returns a constant range.
     */
   def constant[T](min: T, max: T): Range[T] = constant(min, min, max)
 
-  /**
-    * Returns a constant range.
+  /** Returns a constant range.
     */
   def constant[T](base: T, min: T, max: T): Range[T] = Range(base, _ => (min, max))
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Byte, max: Byte): Range[Byte] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Short, max: Short): Range[Short] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Int, max: Int): Range[Int] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Long, max: Long): Range[Long] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Byte, min: Byte, max: Byte): Range[Byte] = linear(base.toLong, min.toLong, max.toLong).map(_.toByte)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Short, min: Short, max: Short): Range[Short] =
     linear(base.toLong, min.toLong, max.toLong).map(_.toShort)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Int, min: Int, max: Int): Range[Int] = linear(base.toLong, min.toLong, max.toLong).map(_.toInt)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Long, min: Long, max: Long): Range[Long] = {
     require(min <= max, "hariko.data.Range.linear: invalid bounds")
@@ -85,24 +72,20 @@ object Range {
       )
   }
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Float, max: Float): Range[Float] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(min: Double, max: Double): Range[Double] = linear(min, min, max)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Float, min: Float, max: Float): Range[Float] =
     linear(base.toDouble, min.toDouble, max.toDouble).map(_.toFloat)
 
-  /**
-    * Returns a linear scaling range.
+  /** Returns a linear scaling range.
     */
   def linear(base: Double, min: Double, max: Double): Range[Double] = {
     require(min <= max, "hariko.data.Range.linear: invalid bounds")
@@ -110,8 +93,7 @@ object Range {
     Range(base, scale => (base - (base - min) * (scale / 100.0), base + (max - base) * (scale / 100.0)))
   }
 
-  /**
-    * Returns a linear scaling range of BigIng.
+  /** Returns a linear scaling range of BigIng.
     *
     * It is private because this method is for preventing overflow.
     */

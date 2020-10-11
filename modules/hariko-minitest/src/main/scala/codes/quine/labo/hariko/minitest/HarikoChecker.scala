@@ -6,34 +6,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import _root_.minitest.api.Asserts
 
-/**
-  * A mix-in for writing Hariko property testing in minitest.
+/** A mix-in for writing Hariko property testing in minitest.
   */
 trait HarikoChecker {
   import Asserts._
 
-  /**
-    * A default parameter of property testing.
+  /** A default parameter of property testing.
     */
   val param: Param = Param()
 
-  /**
-    * A default parameter of coverage testing.
+  /** A default parameter of coverage testing.
     *
     * For reprucible testing, its seed should be constant.
     */
   val paramForCoverage: Param = Param(42)
 
-  /**
-    * Runs the property.
+  /** Runs the property.
     */
   def check(p: Property): Unit = {
     val result = p.run(param.toRandom, param)
     if (!result.isPass) fail(result.toString)
   }
 
-  /**
-    * Checks coverage of generated values for the generator.
+  /** Checks coverage of generated values for the generator.
     */
   def checkCoverageWith[T](gen: Gen[T], param: Param = paramForCoverage)(
       covers: ((Int, String), (T => Boolean))*
@@ -57,8 +52,7 @@ trait HarikoChecker {
     }
   }
 
-  /**
-    * Checks coverage of generated values for the default generator.
+  /** Checks coverage of generated values for the default generator.
     */
   def checkCoverage[T: Gen](covers: ((Int, String), (T => Boolean))*): Unit =
     checkCoverageWith(Gen[T])(covers: _*)

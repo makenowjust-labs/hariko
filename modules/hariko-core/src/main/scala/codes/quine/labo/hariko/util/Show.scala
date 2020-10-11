@@ -3,13 +3,11 @@ package util
 
 import data.Tree
 
-/**
-  * Utility functions for showing values.
+/** Utility functions for showing values.
   */
 object Show {
 
-  /**
-    * Shows generated tree value for debugging.
+  /** Shows generated tree value for debugging.
     *
     * {{{
     * scala> import codes.quine.labo.hariko._
@@ -58,8 +56,7 @@ object Show {
     loop(tree, 0).mkString("\n")
   }
 
-  /**
-    * Shows the value as human-readable format as possible.
+  /** Shows the value as human-readable format as possible.
     *
     * Currently it makes string and char values format better than `toString`.
     */

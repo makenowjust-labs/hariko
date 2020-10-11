@@ -4,8 +4,7 @@ package data
 import scala.annotation.showAsInfix
 import scala.collection.immutable.SortedSet
 
-/**
-  * PartialFun is lazy data structure represents a partial function.
+/** PartialFun is lazy data structure represents a partial function.
   *
   * Reference:
   *
@@ -14,36 +13,30 @@ import scala.collection.immutable.SortedSet
   */
 sealed abstract class PartialFun[T, R] extends Product with Serializable {
 
-  /**
-    * Converts result value by `f`.
+  /** Converts result value by `f`.
     */
   def map[S](f: R => S): PartialFun[T, S]
 
-  /**
-    * Lists argument-result table.
+  /** Lists argument-result table.
     *
     * NOTE: this result is potentially infinite.
     */
   def table: LazyList[(T, R)]
 
-  /**
-    * Lifts up to usual function.
+  /** Lifts up to usual function.
     */
   def lift: T => Option[R]
 }
 
-/**
-  * PartialFun implementations.
+/** PartialFun implementations.
   */
 object PartialFun {
 
-  /**
-    * Operator notation of PartialFun.
+  /** Operator notation of PartialFun.
     */
   @showAsInfix type :=>[T, R] = PartialFun[T, R]
 
-  /**
-    * An empty partial function.
+  /** An empty partial function.
     */
   final case class Empty[T, R]() extends (T :=> R) {
     def map[S](f: R => S): T :=> S = Empty()
@@ -53,8 +46,7 @@ object PartialFun {
     def lift: T => Option[R] = _ => None
   }
 
-  /**
-    * A partial function from unit.
+  /** A partial function from unit.
     */
   final case class Conquer[R](value: R) extends (Unit :=> R) {
     def map[S](f: R => S): Unit :=> S = Conquer(f(value))
@@ -64,8 +56,7 @@ object PartialFun {
     def lift: Unit => Option[R] = _ => Some(value)
   }
 
-  /**
-    * A partial function lifted down from usual function restricted by the domain.
+  /** A partial function lifted down from usual function restricted by the domain.
     */
   final case class Unlift[T, R](domain: SortedSet[T], f: T => R) extends (T :=> R) {
     def map[S](g: R => S): T :=> S = Unlift(domain, f.andThen(g))
@@ -75,8 +66,7 @@ object PartialFun {
     def lift: T => Option[R] = x => if (domain.contains(x)) Some(f(x)) else None
   }
 
-  /**
-    * A curried partial function.
+  /** A curried partial function.
     */
   final case class Uncurry[T1, T2, R](pfun: T1 :=> (T2 :=> R)) extends ((T1, T2) :=> R) {
     def map[S](f: R => S): (T1, T2) :=> S = Uncurry(pfun.map(_.map(f)))
@@ -92,8 +82,7 @@ object PartialFun {
     }
   }
 
-  /**
-    * A partial function accepts either values.
+  /** A partial function accepts either values.
     */
   final case class Choice[T1, T2, R](pfun1: T1 :=> R, pfun2: T2 :=> R) extends (Either[T1, T2] :=> R) {
     def map[S](f: R => S): Either[T1, T2] :=> S = Choice(pfun1.map(f), pfun2.map(f))
@@ -107,8 +96,7 @@ object PartialFun {
     }
   }
 
-  /**
-    * A partial function converted by providing both sides transformation.
+  /** A partial function converted by providing both sides transformation.
     */
   final case class Iso[T, U, R](forward: T => U, backward: U => T, pfun: U :=> R) extends (T :=> R) {
     def map[S](f: R => S): T :=> S = Iso(forward, backward, pfun.map(f))
@@ -118,8 +106,7 @@ object PartialFun {
     def lift: T => Option[R] = x => pfun.lift(forward(x))
   }
 
-  /**
-    * A delayed partial function for recursive structure.
+  /** A delayed partial function for recursive structure.
     */
   final case class Delay[T, R](delayedTree: () => Tree[Option[T :=> R]]) extends (T :=> R) {
     def map[S](f: R => S): T :=> S = Delay(() => delayedTree().map(_.map(_.map(f))))

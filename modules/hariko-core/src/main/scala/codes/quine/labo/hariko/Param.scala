@@ -6,8 +6,7 @@ import scala.concurrent.duration.Duration
 
 import random.Random
 
-/**
-  * Param is a parameter of property execution.
+/** Param is a parameter of property execution.
   *
   * @param seed a seed of PRNG for testing
   * @param minSuccessful what number of running a property
@@ -27,8 +26,7 @@ final case class Param(
     timeout: Duration = Duration(5, TimeUnit.SECONDS)
 ) {
 
-  /**
-    * Builds a PRNG from this seed.
+  /** Builds a PRNG from this seed.
     */
   def toRandom: Random = Random(seed)
 }
