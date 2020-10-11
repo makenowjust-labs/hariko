@@ -17,18 +17,15 @@ import data.Tree
 import random.Random
 import util.Show
 
-/**
-  * Property is a property for testing.
+/** Property is a property for testing.
   */
 final case class Property(run: (Random, Param, ExecutionContext) => Property.Result) {
 
-  /**
-    * Runs this property on the implicit execution context.
+  /** Runs this property on the implicit execution context.
     */
   def run(rand: Random, param: Param)(implicit ec: ExecutionContext): Property.Result = run(rand, param, ec)
 
-  /**
-    * Modifies parameter of this property.
+  /** Modifies parameter of this property.
     */
   def withParam(f: Param => Param): Property =
     Property((rand, param, ec) => run(rand, f(param), ec))
@@ -36,27 +33,23 @@ final case class Property(run: (Random, Param, ExecutionContext) => Property.Res
 
 object Property {
 
-  /**
-    * Result is result of property execution.
+  /** Result is result of property execution.
     */
   sealed abstract class Result extends Serializable with Product {
 
-    /**
-      * Whether this result is `Pass` or not.
+    /** Whether this result is `Pass` or not.
       */
     def isPass: Boolean = false
   }
 
-  /**
-    * Passes the propety.
+  /** Passes the propety.
     */
   final case class Pass(seed: Long, test: Int) extends Result {
     override def isPass: Boolean = true
     override def toString: String = s"pass (seed: 0x${seed.toHexString}, test: $test)"
   }
 
-  /**
-    * A counter example is found.
+  /** A counter example is found.
     */
   final case class CounterExample(seed: Long, test: Int, shrink: Int, value: Any) extends Result {
     override def toString: String =
@@ -66,15 +59,13 @@ object Property {
          |""".stripMargin
   }
 
-  /**
-    * No value is generated.
+  /** No value is generated.
     */
   final case class NoValue(seed: Long, test: Int) extends Result {
     override def toString: String = s"no value (seed: 0x${seed.toHexString}, test: $test)"
   }
 
-  /**
-    * An error is occured in property execution.
+  /** An error is occured in property execution.
     */
   final case class Error(seed: Long, test: Int, shrink: Int, value: Any, exception: Throwable) extends Result {
     override def toString: String =
@@ -86,15 +77,13 @@ object Property {
          |""".stripMargin
   }
 
-  /**
-    * Times out property execution.
+  /** Times out property execution.
     */
   final case class Timeout(seed: Long, duration: Duration) extends Result {
     override def toString: String = s"timeout (seed: 0x${seed.toHexString}, duration: $duration)"
   }
 
-  /**
-    * Checks property `f` on the default generator.
+  /** Checks property `f` on the default generator.
     *
     * NOTE: it is utility method for testing in REPL.
     *
@@ -108,8 +97,7 @@ object Property {
   def check[T: Gen](f: T => Boolean): Result =
     checkWith(Gen[T])(f)
 
-  /**
-    * Checks property `f` on default generator and the parameter.
+  /** Checks property `f` on default generator and the parameter.
     *
     * NOTE: it is utility method for testing in REPL.
     *
@@ -127,8 +115,7 @@ object Property {
   def checkWith[T: Gen](param: Param)(f: T => Boolean): Result =
     checkWith(Gen[T], param)(f)
 
-  /**
-    * Checks property `f` on the generator.
+  /** Checks property `f` on the generator.
     *
     * NOTE: it is utility method for testing in REPL.
     */
@@ -139,14 +126,12 @@ object Property {
     p.run(param.toRandom, param)
   }
 
-  /**
-    * Builds a property `f` on the default generator.
+  /** Builds a property `f` on the default generator.
     */
   def forAll[T: Gen](f: T => Boolean): Property =
     forAllWith(Gen[T])(f)
 
-  /**
-    * Builds a property `f` on the generator.
+  /** Builds a property `f` on the generator.
     */
   def forAllWith[T](gen: Gen[T])(f: T => Boolean): Property =
     Property { (rand, param, ec0) =>
@@ -202,8 +187,7 @@ object Property {
       }
     }
 
-  /**
-    * Shrinks a counter example from tree.
+  /** Shrinks a counter example from tree.
     */
   private[hariko] def shrinkCounterExample[T](tree: Tree[Option[T]], param: Param)(
       f: T => Boolean

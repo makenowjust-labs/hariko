@@ -1,20 +1,17 @@
 package codes.quine.labo.hariko.data
 
-/**
-  * Tree is [[https://en.wikipedia.org/wiki/Rose_tree rose tree]] implementation.
+/** Tree is [[https://en.wikipedia.org/wiki/Rose_tree rose tree]] implementation.
   *
   * In this library, it represents a pair of current value and its shrunk values.
   */
 final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
 
-  /**
-    * Converts each values by `f`.
+  /** Converts each values by `f`.
     */
   def map[U](f: T => U): Tree[U] =
     Tree(f(value), children.map(_.map(f)))
 
-  /**
-    * Expands each values by `f`.
+  /** Expands each values by `f`.
     *
     * Expanded values are prepended to its children.
     */
@@ -27,8 +24,7 @@ final case class Tree[T](value: T, children: LazyList[Tree[T]]) {
 
 object Tree {
 
-  /**
-    * Create a new tree which has value `x` and no children.
+  /** Create a new tree which has value `x` and no children.
     */
   def pure[T](x: T): Tree[T] = Tree(x, LazyList.empty)
 
@@ -39,8 +35,7 @@ object Tree {
       tree1.children.map(map2(_, tree2)(f)) ++ tree2.children.map(map2(tree1, _)(f))
     )
 
-  /**
-    * Collapses option values in tree. If root value is None, result is also None.
+  /** Collapses option values in tree. If root value is None, result is also None.
     *
     * This signature looks like `Traverse.sequence` function, but its semantics are not relevant.
     */

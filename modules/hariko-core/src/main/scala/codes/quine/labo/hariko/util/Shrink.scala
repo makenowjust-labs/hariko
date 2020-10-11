@@ -6,21 +6,18 @@ import scala.collection.immutable.SortedSet
 import data.Tree
 import data.PartialFun._
 
-/**
-  * Utility functions for shrinking.
+/** Utility functions for shrinking.
   */
 object Shrink {
 
-  /**
-    * Shrinks a long value to the base.
+  /** Shrinks a long value to the base.
     */
   def long(base: Long, x: Long): LazyList[Long] =
     if (x == base) LazyList.empty
     else if (Math.abs(x - base) == 1) LazyList(base)
     else LazyList.iterate(x / 2 - base / 2)(_ / 2).takeWhile(_ != 0).map(x - _)
 
-  /**
-    * Shrinks a double value to the base.
+  /** Shrinks a double value to the base.
     */
   def double(base: Double, x: Double): LazyList[Double] =
     if (x == base) LazyList.empty
@@ -31,8 +28,7 @@ object Shrink {
         .take(32)
         .map(x - _)
 
-  /**
-    * Shrinks a list.
+  /** Shrinks a list.
     */
   def list[T](minSize: Int, xs: List[T]): LazyList[List[T]] = {
     def interleave[T](xs: LazyList[T], ys: LazyList[T]): LazyList[T] =
@@ -54,8 +50,7 @@ object Shrink {
     loop(xs).dropWhile(_.size < minSize)
   }
 
-  /**
-    * Shrink a partial function.
+  /** Shrink a partial function.
     */
   def partialFun[T: Ordering, R](pfun: T :=> Option[Tree[R]]): LazyList[T :=> Option[Tree[R]]] =
     pfun match {

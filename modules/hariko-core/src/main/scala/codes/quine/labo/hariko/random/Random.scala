@@ -1,20 +1,17 @@
 package codes.quine.labo.hariko.random
 
-/**
-  * Random is [[SplitMix64]] wrapper with utilities.
+/** Random is [[SplitMix64]] wrapper with utilities.
   */
 final case class Random(splitmix: SplitMix64) {
 
-  /**
-    * Generates a random long value.
+  /** Generates a random long value.
     *
     * Long value range is `Long.MinValue <= x <= Long.MinValue`.
     */
   def nextLong: (Random, Long) =
     (Random(splitmix.next), splitmix.value)
 
-  /**
-    * Generates a random long value in bounds.
+  /** Generates a random long value in bounds.
     *
     * Long value range is `min <= x <= max`, where `(min, max) = bounds`.
     */
@@ -31,8 +28,7 @@ final case class Random(splitmix: SplitMix64) {
     }
   }
 
-  /**
-    * Generates a random double value.
+  /** Generates a random double value.
     *
     * Double value range is `0 <= x <= 1`.
     */
@@ -41,8 +37,7 @@ final case class Random(splitmix: SplitMix64) {
     (rand, (x >>> 11).toDouble / ((1L << 53) - 1).toDouble)
   }
 
-  /**
-    * Generates a random double value in bounds.
+  /** Generates a random double value in bounds.
     *
     * Double value range is `min <= x <= max`, where `(min, max) = bounds`.
     */
@@ -59,29 +54,25 @@ final case class Random(splitmix: SplitMix64) {
     }
   }
 
-  /**
-    * Splits into two variants.
+  /** Splits into two variants.
     */
   def split: (Random, Random) = {
     val (left, right) = splitmix.split
     (Random(left), Random(right))
   }
 
-  /**
-    * Returns left variant. It is the same as `split._1`.
+  /** Returns left variant. It is the same as `split._1`.
     */
   def left: Random = Random(splitmix.left)
 
-  /**
-    * Returns left variant. It is the same as `split._2`.
+  /** Returns left variant. It is the same as `split._2`.
     */
   def right: Random = Random(splitmix.right)
 }
 
 object Random {
 
-  /**
-    * Creates a new PRNG instance from the seed.
+  /** Creates a new PRNG instance from the seed.
     */
   def apply(seed: Long): Random = Random(SplitMix64(seed))
 }
