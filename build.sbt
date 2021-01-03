@@ -41,7 +41,7 @@ def moduleSettings(moduleName: String) =
       .map(_ -> url(s"http://www.scala-lang.org/api/${scalaVersion.value}/"))
       .toMap,
     // Settings for test:
-    libraryDependencies += "io.monix" %% "minitest" % "2.9.1" % Test,
+    libraryDependencies += "io.monix" %% "minitest" % "2.9.2" % Test,
     testFrameworks += new TestFramework("minitest.runner.Framework"),
     doctestTestFramework := DoctestTestFramework.Minitest,
     // Surpress warnings in doctest generated files.
@@ -82,6 +82,6 @@ lazy val minitest = project
   .settings(
     moduleSettings("minitest"),
     // Dependencies:
-    libraryDependencies += "io.monix" %% "minitest" % "2.9.1" % Provided
+    libraryDependencies += "io.monix" %% "minitest" % "2.9.2" % Provided
   )
   .dependsOn(core)
