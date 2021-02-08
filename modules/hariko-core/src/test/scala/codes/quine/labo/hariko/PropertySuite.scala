@@ -1,8 +1,8 @@
 package codes.quine.labo.hariko
 
-import scala.concurrent.duration.Duration
-
 import minitest.SimpleTestSuite
+
+import scala.concurrent.duration.Duration
 
 import data.Tree
 

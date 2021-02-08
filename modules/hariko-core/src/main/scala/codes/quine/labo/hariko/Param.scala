@@ -1,7 +1,6 @@
 package codes.quine.labo.hariko
 
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent.duration.Duration
 
 import random.Random

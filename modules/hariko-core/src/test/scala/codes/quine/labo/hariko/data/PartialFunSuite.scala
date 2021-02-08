@@ -1,8 +1,8 @@
 package codes.quine.labo.hariko.data
 
-import scala.collection.immutable.SortedSet
-
 import minitest.SimpleTestSuite
+
+import scala.collection.immutable.SortedSet
 
 import PartialFun._
 

@@ -1,7 +1,6 @@
 package codes.quine.labo.hariko
 
 import java.util.concurrent.TimeoutException
-
 import scala.annotation.tailrec
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
