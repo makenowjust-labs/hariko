@@ -1,10 +1,10 @@
 package codes.quine.labo.hariko
 package minitest
 
+import _root_.minitest.api.Asserts
+
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import _root_.minitest.api.Asserts
 
 /** A mix-in for writing Hariko property testing in minitest.
   */
