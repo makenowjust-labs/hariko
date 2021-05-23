@@ -46,8 +46,8 @@ def moduleSettings(moduleName: String) =
     doctestTestFramework := DoctestTestFramework.Minitest,
     // Surpress warnings in doctest generated files.
     libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.3" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.7.3" % Provided cross CrossVersion.full
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.4" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
     ),
     scalacOptions += "-P:silencer:globalFilters=toVoid is never used"
   )
