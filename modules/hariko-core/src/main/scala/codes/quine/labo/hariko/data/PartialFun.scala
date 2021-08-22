@@ -8,8 +8,8 @@ import scala.collection.immutable.SortedSet
   *
   * Reference:
   *
-  * - Claessen, Koen. (2012) "Shrinking and showing functions: (functional pearl)."
-  *   [[https://doi.org/10.1145/2364506.2364516]]
+  *   - Claessen, Koen. (2012) "Shrinking and showing functions: (functional pearl)."
+  *     [[https://doi.org/10.1145/2364506.2364516]]
   */
 sealed abstract class PartialFun[T, R] extends Product with Serializable {
 
