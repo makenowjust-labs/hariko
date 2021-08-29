@@ -4,13 +4,13 @@ import SplitMix64.{mix64, mixGamma}
 
 /** SplitMix64 is an immutable 64-bit SplitMix implementation.
   *
-  * SplitMix is one of splittable pseudo-random number generators (PRNG).
-  * It has useful features for Property Based Testing.
+  * SplitMix is one of splittable pseudo-random number generators (PRNG). It has useful features for Property Based
+  * Testing.
   *
   * Reference:
   *
-  * - Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. (2014) "Fast splittable pseudorandom number generators."
-  *   [[https://doi.org/10.1145/2660193.2660195]]
+  *   - Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. (2014) "Fast splittable pseudorandom number generators."
+  *     [[https://doi.org/10.1145/2660193.2660195]]
   */
 final case class SplitMix64 private (x: Long, gamma: Long) {
 
