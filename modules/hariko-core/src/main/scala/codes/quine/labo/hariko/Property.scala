@@ -206,7 +206,7 @@ object Property {
       }
       else
         children.headOption match {
-          case Some(Tree(None, ts))             => loop(ts, x, shrink + 1, discard + 1, (discard, children.tail) :: stack)
+          case Some(Tree(None, ts)) => loop(ts, x, shrink + 1, discard + 1, (discard, children.tail) :: stack)
           case Some(Tree(Some(x), ts)) if !f(x) => loop(ts, x, shrink + 1, discard, List.empty)
           case Some(_)                          => loop(children.tail, x, shrink + 1, discard, stack)
           case None                             => Some((shrink, x))
